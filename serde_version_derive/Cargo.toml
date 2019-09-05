@@ -1,0 +1,17 @@
+[package]
+name = "serde_version_derive"
+version = "0.1.0"
+authors = ["Frédéric Vauchelles <frederic.vauchelles@gmail.com>"]
+
+[features]
+derive = []
+
+[lib]
+name = "serde_version_derive"
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0"
+quote = "1.0"
+syn = { version = "1.0", features = ["visit"] }
+proc-macro-util = "^0.1.0"
