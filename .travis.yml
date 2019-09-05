@@ -2,16 +2,7 @@ language: rust
 
 matrix:
   include:
-    - rust: stable
-      script:
-        - cargo build
-        - cargo test
-
-    - rust: beta
-      script:
-        - cargo build
-        - cargo test
-
+    # Test only on nightly as we use the specialization feature
     - rust: nightly
       script:
         - cargo build
