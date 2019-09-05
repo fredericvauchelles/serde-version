@@ -61,7 +61,7 @@
 //! the `DeserializeVersioned` trait.
 //!
 //! Authoring example:
-//! ```rust
+//! ```dont_compile
 //! // Version 1 of struct A
 //! // It must implement Deserialize, so it can be loaded by serde
 //! #[derive(Deserialize)]
@@ -101,7 +101,34 @@
 //!
 //! Execution example:
 //! ```rust
-//! #[derive(Deserialize)]
+//! # #![feature(specialization)]
+//! #
+//! # #[macro_use]
+//! # extern crate serde_version_derive;
+//! #
+//! # use serde::Deserialize;
+//! # use serde_version::DeserializeVersioned;
+//! # use std::fmt::Debug;
+//! #
+//! # #[derive(Deserialize)]
+//! # #[serde(rename = "A")]
+//! # struct Av1 {
+//! #   a: u8
+//! # }
+//! # #[derive(Deserialize, DeserializeVersioned, PartialEq, Debug)]
+//! # #[versions("Av1")]
+//! # struct A {
+//! #   b: u8
+//! # }
+//! # impl From<Av1> for A {
+//! #   fn from(v: Av1) -> Self {
+//! #     Self {
+//! #       b: v.a
+//! #     }
+//! #   }
+//! # }
+//!
+//! #[derive(Deserialize, PartialEq, Debug)]
 //! struct AInMap {
 //!   a: A,
 //! }
@@ -119,13 +146,13 @@
 //!   
 //!   // Deserialize directly A
 //!   let mut deserializer = ron::de::Deserializer::from_str(r#"A(a: 1)"#).unwrap();
-//!   let value = A::deserialize_versioned(&mut deserializer, &versions);
+//!   let value = A::deserialize_versioned(&mut deserializer, &versions).unwrap();
 //!   assert_eq!(value, A { b: 1 });
 //!   
 //!   // Deserialize A contained in a struct property
-//!   let mut deserializer = ron::de::Deserializer::from_str(r#"AInMap(a: A(a: 2))"#);
+//!   let mut deserializer = ron::de::Deserializer::from_str(r#"AInMap(a: A(a: 2))"#).unwrap();
 //!   // Note: All types implementing `Deserialize` will also implement `DeserializeVersioned`
-//!   let value = AInMap::deserialize_versioned(&mut deserializer, &versions);
+//!   let value = AInMap::deserialize_versioned(&mut deserializer, &versions).unwrap();
 //!   assert_eq!(value.a, A { b: 2});
 //! }
 //! ```

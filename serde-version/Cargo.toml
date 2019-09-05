@@ -1,0 +1,29 @@
+[package]
+name = "serde-version"
+version = "0.1.0"
+authors = ["Frédéric Vauchelles <frederic.vauchelles@gmail.com>"]
+edition = "2018"
+license = "MIT OR Apache-2.0"
+description = "Versioning support for Serde"
+homepage = "https://github.com/fredpointzero/serde-version"
+repository = "https://github.com/fredpointzero/serde-version"
+keywords = ["serde", "version", "serialization"]
+categories = ["encoding"]
+readme = "README.md"
+include = ["Cargo.toml", "src/**/*.rs"]
+
+[badges]
+travis-ci = { repository = "fredpointzero/serde-version" }
+
+[dependencies]
+serde = "^1.0.0"
+serde_version_derive = { version = "0.1.0", optional = true, path = "../serde_version_derive" }
+
+[dev-dependencies]
+serde_version_derive = { version = "0.1.0", path = "../serde_version_derive" }
+serde = { version = "^1.0.0", features = ["derive"] }
+ron = "^0.5.0"
+
+[features]
+default = []
+derive = ["serde_version_derive"]
