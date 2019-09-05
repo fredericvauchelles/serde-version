@@ -17,10 +17,10 @@ travis-ci = { repository = "fredpointzero/serde-version" }
 
 [dependencies]
 serde = "^1.0.0"
-serde_version_derive = { optional = true, path = "serde_version_derive" }
+serde_version_derive = { version = "0.1.0", optional = true, path = "serde_version_derive" }
 
 [dev-dependencies]
-serde_version_derive = { path = "serde_version_derive" }
+serde_version_derive = { version = "0.1.0", path = "serde_version_derive" }
 serde = { version = "^1.0.0", features = ["derive"] }
 ron = "^0.5.0"
 
