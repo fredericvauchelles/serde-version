@@ -139,7 +139,6 @@
 
 pub use deserializer::{VersionMap, VersionedDeserializer};
 use serde::de::{EnumAccess, MapAccess, SeqAccess};
-use serde::Deserialize;
 
 // Re-export #[derive(Serialize, Deserialize)].
 //
