@@ -2,9 +2,14 @@
 name = "serde_version_derive"
 version = "0.1.0"
 authors = ["Frédéric Vauchelles <frederic.vauchelles@gmail.com>"]
-
-[features]
-derive = []
+license = "MIT OR Apache-2.0"
+description = "Versioning support for Serde"
+homepage = "https://github.com/fredpointzero/serde-version"
+repository = "https://github.com/fredpointzero/serde-version"
+keywords = ["serde", "version", "serialization"]
+categories = ["encoding"]
+readme = "README.md"
+include = ["Cargo.toml", "src/**/*.rs"]
 
 [lib]
 name = "serde_version_derive"
