@@ -164,9 +164,6 @@
 
 #![feature(specialization)]
 
-pub use deserializer::{VersionMap, VersionedDeserializer};
-use serde::de::{EnumAccess, MapAccess, SeqAccess};
-
 // Re-export #[derive(Serialize, Deserialize)].
 //
 // The reason re-exporting is not enabled by default is that disabling it would
@@ -179,6 +176,84 @@ extern crate serde_version_derive;
 #[cfg(feature = "serde_version_derive")]
 #[doc(hidden)]
 pub use serde_version_derive::*;
+#[macro_use]
+extern crate failure;
+
+pub use deserializer::{VersionMap, VersionedDeserializer};
+use serde::de::{EnumAccess, MapAccess, SeqAccess};
+use std::fmt::Display;
+
+#[derive(Debug, Hash, PartialEq, Eq, Fail)]
+#[fail(display = "Invalid version {} for {}", version, type_id)]
+pub struct InvalidVersionError {
+    pub version: usize,
+    pub type_id: String,
+}
+
+#[derive(Debug, Hash, PartialEq, Eq)]
+pub enum Error<E> {
+    DeserializeError(E),
+    InvalidVersionError(InvalidVersionError),
+    Custom(String),
+}
+
+impl<E> Error<E>
+where
+    E: serde::de::Error,
+{
+    pub fn into_error(self) -> E {
+        match self {
+            Error::Custom(err) => serde::de::Error::custom(err),
+            Error::DeserializeError(err) => err,
+            Error::InvalidVersionError(err) => serde::de::Error::custom(format!("{}", err)),
+        }
+    }
+}
+
+impl<E> Error<Error<E>>
+where
+    E: serde::de::Error,
+{
+    pub fn reduce(self) -> Error<E> {
+        match self {
+            Error::Custom(err) | Error::DeserializeError(Error::Custom(err)) => Error::Custom(err),
+            Error::InvalidVersionError(err)
+            | Error::DeserializeError(Error::InvalidVersionError(err)) => {
+                Error::InvalidVersionError(err)
+            }
+            Error::DeserializeError(Error::DeserializeError(err)) => Error::DeserializeError(err),
+        }
+    }
+}
+
+impl<E> std::fmt::Display for Error<E>
+where
+    E: std::fmt::Display,
+{
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        match self {
+            Error::DeserializeError(ref e) => write!(f, "{}", e),
+            Error::InvalidVersionError(ref e) => {
+                write!(f, "Unknown version {} for type {}", e.version, e.type_id)
+            }
+            Error::Custom(ref e) => write!(f, "{}", e),
+        }
+    }
+}
+
+impl<E> std::error::Error for Error<E> where E: std::error::Error {}
+
+impl<E> serde::de::Error for Error<E>
+where
+    E: serde::de::Error,
+{
+    fn custom<T>(msg: T) -> Self
+    where
+        T: Display,
+    {
+        Self::Custom(format!("{}", msg))
+    }
+}
 
 /// Trait for versioning support during deserialization
 ///
@@ -193,11 +268,11 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
     fn deserialize_versioned<D>(
         deserializer: D,
         _version_map: &'de VersionMap,
-    ) -> Result<Self, D::Error>
+    ) -> Result<Self, Error<D::Error>>
     where
         D: serde::de::Deserializer<'de>,
     {
-        Self::deserialize(deserializer)
+        Self::deserialize(deserializer).map_err(Error::DeserializeError)
     }
 
     /// Entry point for deserializing an element in a sequence
@@ -209,11 +284,13 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
     fn next_element<S>(
         seq_access: &mut S,
         _version_map: &'de VersionMap,
-    ) -> Result<Option<Self>, S::Error>
+    ) -> Result<Option<Self>, Error<S::Error>>
     where
         S: SeqAccess<'de>,
     {
-        seq_access.next_element_seed(std::marker::PhantomData)
+        seq_access
+            .next_element_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
     }
 
     /// Entry point for deserializing the next map value
@@ -222,11 +299,16 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
     ///
     /// The default implementation ignore the versioning
     #[inline]
-    fn next_value<M>(map_access: &mut M, _version_map: &'de VersionMap) -> Result<Self, M::Error>
+    fn next_value<M>(
+        map_access: &mut M,
+        _version_map: &'de VersionMap,
+    ) -> Result<Self, Error<M::Error>>
     where
         M: MapAccess<'de>,
     {
-        map_access.next_value_seed(std::marker::PhantomData)
+        map_access
+            .next_value_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
     }
 
     /// Entry point for deserializing the next key value
@@ -238,11 +320,13 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
     fn next_key<M>(
         map_access: &mut M,
         _version_map: &'de VersionMap,
-    ) -> Result<Option<Self>, M::Error>
+    ) -> Result<Option<Self>, Error<M::Error>>
     where
         M: MapAccess<'de>,
     {
-        map_access.next_key_seed(std::marker::PhantomData)
+        map_access
+            .next_key_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
     }
 
     /// Entry point for deserializing the next variant
@@ -254,11 +338,13 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
     fn variant<E>(
         enum_access: E,
         _version_map: &'de VersionMap,
-    ) -> Result<(Self, E::Variant), E::Error>
+    ) -> Result<(Self, E::Variant), Error<E::Error>>
     where
         E: EnumAccess<'de>,
     {
-        enum_access.variant_seed(std::marker::PhantomData)
+        enum_access
+            .variant_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
     }
 }
 
@@ -266,7 +352,7 @@ impl<'de, T: serde::Deserialize<'de>> DeserializeVersioned<'de> for T {
     default fn deserialize_versioned<D>(
         deserializer: D,
         version_map: &'de VersionMap,
-    ) -> Result<Self, D::Error>
+    ) -> Result<Self, Error<D::Error>>
     where
         D: serde::de::Deserializer<'de>,
     {
@@ -277,6 +363,7 @@ impl<'de, T: serde::Deserialize<'de>> DeserializeVersioned<'de> for T {
 
 mod deserializer {
     use super::visitor::VersionedVisitor;
+    use super::Error;
     use serde::Deserializer;
     use std::collections::HashMap;
 
@@ -312,20 +399,20 @@ mod deserializer {
     macro_rules! forward_deserialize {
     ($name:ident) => {forward_deserialize!($name, );};
     ($name:ident, $($arg:tt => $ty:ty),*) => {
-        fn $name<V>(self, $($arg: $ty,)* visitor: V) -> Result<V::Value, D::Error>
+        fn $name<V>(self, $($arg: $ty,)* visitor: V) -> Result<V::Value, Error<D::Error>>
             where V: serde::de::Visitor<'de>
         {
             let visitor = VersionedVisitor::new(
                 visitor,
                 self.version_map,
             );
-            self.deserializer.$name($($arg,)* visitor)
+            self.deserializer.$name($($arg,)* visitor).map_err(Error::DeserializeError)
         }
     }
 }
 
     impl<'de, D: Deserializer<'de>> Deserializer<'de> for VersionedDeserializer<'de, D> {
-        type Error = D::Error;
+        type Error = Error<D::Error>;
 
         forward_deserialize!(deserialize_any);
         forward_deserialize!(deserialize_bool);
@@ -364,6 +451,7 @@ mod deserializer {
 }
 
 mod visitor {
+    use super::Error;
     use super::{VersionMap, VersionedDeserializer};
     use crate::seed::VersionedSeed;
     use crate::DeserializeVersioned;
@@ -445,7 +533,9 @@ mod visitor {
             D: Deserializer<'de>,
         {
             let deserializer = VersionedDeserializer::new(deserializer, self.version_map);
-            self.visitor.visit_some(deserializer)
+            self.visitor
+                .visit_some(deserializer)
+                .map_err(|err| err.into_error())
         }
 
         #[inline]
@@ -454,7 +544,9 @@ mod visitor {
             D: Deserializer<'de>,
         {
             let deserializer = VersionedDeserializer::new(deserializer, self.version_map);
-            self.visitor.visit_newtype_struct(deserializer)
+            self.visitor
+                .visit_newtype_struct(deserializer)
+                .map_err(|err| err.into_error())
         }
 
         #[inline]
@@ -466,7 +558,9 @@ mod visitor {
                 visitor,
                 version_map: self.version_map,
             };
-            self.visitor.visit_seq(visitor)
+            self.visitor
+                .visit_seq(visitor)
+                .map_err(|err| err.into_error())
         }
 
         #[inline]
@@ -478,7 +572,9 @@ mod visitor {
                 visitor,
                 version_map: self.version_map,
             };
-            self.visitor.visit_map(visitor)
+            self.visitor
+                .visit_map(visitor)
+                .map_err(|err| err.into_error())
         }
 
         #[inline]
@@ -490,7 +586,9 @@ mod visitor {
                 visitor,
                 version_map: self.version_map,
             };
-            self.visitor.visit_enum(visitor)
+            self.visitor
+                .visit_enum(visitor)
+                .map_err(|err| err.into_error())
         }
     }
 
@@ -498,7 +596,7 @@ mod visitor {
     where
         V: SeqAccess<'de>,
     {
-        type Error = V::Error;
+        type Error = Error<V::Error>;
 
         #[inline]
         fn next_element_seed<T>(
@@ -509,7 +607,9 @@ mod visitor {
             T: DeserializeSeed<'de>,
         {
             let seed = VersionedSeed::new(seed, self.version_map);
-            self.visitor.next_element_seed(seed)
+            self.visitor
+                .next_element_seed(seed)
+                .map_err(Error::DeserializeError)
         }
 
         #[inline]
@@ -518,6 +618,7 @@ mod visitor {
             T: Deserialize<'de>,
         {
             <T as DeserializeVersioned<'de>>::next_element(self, self.version_map)
+                .map_err(|err| err.reduce())
         }
     }
 
@@ -525,7 +626,7 @@ mod visitor {
     where
         V: MapAccess<'de>,
     {
-        type Error = V::Error;
+        type Error = Error<V::Error>;
 
         #[inline]
         fn next_key_seed<K>(
@@ -536,7 +637,9 @@ mod visitor {
             K: DeserializeSeed<'de>,
         {
             let seed = VersionedSeed::new(seed, self.version_map);
-            self.visitor.next_key_seed(seed)
+            self.visitor
+                .next_key_seed(seed)
+                .map_err(Error::DeserializeError)
         }
 
         #[inline]
@@ -548,7 +651,9 @@ mod visitor {
             S: DeserializeSeed<'de>,
         {
             let seed = VersionedSeed::new(seed, self.version_map);
-            self.visitor.next_value_seed(seed)
+            self.visitor
+                .next_value_seed(seed)
+                .map_err(Error::DeserializeError)
         }
 
         #[inline]
@@ -557,14 +662,16 @@ mod visitor {
             &mut self,
             kseed: K,
             vseed: V2,
-        ) -> Result<Option<(K::Value, V2::Value)>, V::Error>
+        ) -> Result<Option<(K::Value, V2::Value)>, Self::Error>
         where
             K: DeserializeSeed<'de>,
             V2: DeserializeSeed<'de>,
         {
             let kseed = VersionedSeed::new(kseed, self.version_map);
             let vseed = VersionedSeed::new(vseed, self.version_map);
-            self.visitor.next_entry_seed(kseed, vseed)
+            self.visitor
+                .next_entry_seed(kseed, vseed)
+                .map_err(Error::DeserializeError)
         }
 
         #[inline]
@@ -573,6 +680,7 @@ mod visitor {
             K: Deserialize<'de>,
         {
             <K as DeserializeVersioned<'de>>::next_key(self, self.version_map)
+                .map_err(|err| err.reduce())
         }
 
         #[inline]
@@ -581,6 +689,7 @@ mod visitor {
             V2: Deserialize<'de>,
         {
             <V2 as DeserializeVersioned<'de>>::next_value(self, self.version_map)
+                .map_err(|err| err.reduce())
         }
 
         fn size_hint(&self) -> Option<usize> {
@@ -592,7 +701,7 @@ mod visitor {
     where
         V: EnumAccess<'de>,
     {
-        type Error = V::Error;
+        type Error = Error<V::Error>;
         type Variant = VersionedVisitor<'de, V::Variant>;
 
         #[inline]
@@ -600,7 +709,7 @@ mod visitor {
         fn variant_seed<S>(
             self,
             seed: S,
-        ) -> Result<(S::Value, VersionedVisitor<'de, V::Variant>), V::Error>
+        ) -> Result<(S::Value, VersionedVisitor<'de, V::Variant>), Self::Error>
         where
             S: DeserializeSeed<'de>,
         {
@@ -613,7 +722,7 @@ mod visitor {
                     };
                     Ok((value, variant))
                 }
-                Err(e) => Err(e),
+                Err(e) => Err(Error::DeserializeError(e)),
             }
         }
 
@@ -624,6 +733,7 @@ mod visitor {
         {
             let version_map = self.version_map;
             <V2 as DeserializeVersioned<'de>>::variant(self, version_map)
+                .map_err(|err| err.reduce())
         }
     }
 
@@ -631,24 +741,26 @@ mod visitor {
     where
         V: VariantAccess<'de>,
     {
-        type Error = V::Error;
+        type Error = Error<V::Error>;
 
         #[inline]
-        fn unit_variant(self) -> Result<(), V::Error> {
-            self.visitor.unit_variant()
+        fn unit_variant(self) -> Result<(), Self::Error> {
+            self.visitor.unit_variant().map_err(Error::DeserializeError)
         }
 
         #[inline]
-        fn newtype_variant_seed<S>(self, seed: S) -> Result<S::Value, V::Error>
+        fn newtype_variant_seed<S>(self, seed: S) -> Result<S::Value, Self::Error>
         where
             S: DeserializeSeed<'de>,
         {
             let seed = VersionedSeed::new(seed, self.version_map);
-            self.visitor.newtype_variant_seed(seed)
+            self.visitor
+                .newtype_variant_seed(seed)
+                .map_err(Error::DeserializeError)
         }
 
         #[inline]
-        fn tuple_variant<V2>(self, len: usize, visitor: V2) -> Result<V2::Value, V::Error>
+        fn tuple_variant<V2>(self, len: usize, visitor: V2) -> Result<V2::Value, Self::Error>
         where
             V2: Visitor<'de>,
         {
@@ -656,7 +768,9 @@ mod visitor {
                 visitor,
                 version_map: self.version_map,
             };
-            self.visitor.tuple_variant(len, visitor)
+            self.visitor
+                .tuple_variant(len, visitor)
+                .map_err(Error::DeserializeError)
         }
 
         #[inline]
@@ -664,7 +778,7 @@ mod visitor {
             self,
             fields: &'static [&'static str],
             visitor: V2,
-        ) -> Result<V2::Value, V::Error>
+        ) -> Result<V2::Value, Self::Error>
         where
             V2: Visitor<'de>,
         {
@@ -672,7 +786,9 @@ mod visitor {
                 visitor,
                 version_map: self.version_map,
             };
-            self.visitor.struct_variant(fields, visitor)
+            self.visitor
+                .struct_variant(fields, visitor)
+                .map_err(Error::DeserializeError)
         }
     }
 }
@@ -709,6 +825,7 @@ mod seed {
         {
             self.seed
                 .deserialize(VersionedDeserializer::new(deserializer, self.version_map))
+                .map_err(|err| err.into_error())
         }
     }
 }

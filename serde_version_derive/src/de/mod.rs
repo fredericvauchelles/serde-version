@@ -99,12 +99,12 @@ pub fn expand_derive_deserialize_versioned(
                     fn deserialize_versioned<__D>(
                         __deserializer: __D,
                         __version_map: &'de _serde_version::VersionMap
-                    ) -> _serde::export::Result<Self, __D::Error>
+                    ) -> _serde::export::Result<Self, _serde_version::Error<__D::Error>>
                     where
                         __D: _serde::Deserializer<'de>, {
                         match __version_map.get(#deser_name) {
                             #(#deserialize_arms)*
-                            Some(v) => panic!("unhandled version"),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
                             None => <Self as _serde::Deserialize<'de>>::deserialize(__deserializer),
                         }
                     }
@@ -113,13 +113,13 @@ pub fn expand_derive_deserialize_versioned(
                     fn next_element<__S>(
                         __seq_access: &mut __S,
                         __version_map: &'de _serde_version::VersionMap,
-                    ) -> _serde::export::Result<Option<Self>, __S::Error>
+                    ) -> _serde::export::Result<Option<Self>, _serde_version::Error<__S::Error>>
                     where
                         __S: _serde::de::SeqAccess<'de>
                     {
                         match __version_map.get(#deser_name) {
                             #(#next_element_arms)*
-                            Some(v) => panic!("unhandled version"),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
                             None => <__S as _serde::de::SeqAccess<'de>>::next_element_seed(__seq_access, std::marker::PhantomData),
                         }
                     }
@@ -128,13 +128,13 @@ pub fn expand_derive_deserialize_versioned(
                     fn next_value<__M>(
                         __map_access: &mut __M,
                         __version_map: &'de _serde_version::VersionMap
-                    ) -> _serde::export::Result<Self, __M::Error>
+                    ) -> _serde::export::Result<Self, _serde_version::Error<__M::Error>>
                     where
                         __M: _serde::de::MapAccess<'de>,
                     {
                         match __version_map.get(#deser_name) {
                             #(#next_value_arms)*
-                            Some(v) => panic!("unhandled version"),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
                             None => <__M as _serde::de::MapAccess<'de>>::next_value_seed(__map_access, std::marker::PhantomData),
                         }
                     }
@@ -143,13 +143,13 @@ pub fn expand_derive_deserialize_versioned(
                     fn next_key<__M>(
                         __map_access: &mut __M,
                         __version_map: &'de _serde_version::VersionMap,
-                    ) -> _serde::export::Result<Option<Self>, __M::Error>
+                    ) -> _serde::export::Result<Option<Self>, _serde_version::Error<__M::Error>>
                     where
                         __M: _serde::de::MapAccess<'de>,
                     {
                         match __version_map.get(#deser_name) {
                             #(#next_key_arms)*
-                            Some(v) => panic!("unhandled version"),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
                             None => <__M as _serde::de::MapAccess<'de>>::next_key_seed(__map_access, std::marker::PhantomData),
                         }
                     }
@@ -158,13 +158,13 @@ pub fn expand_derive_deserialize_versioned(
                     fn variant<__E>(
                         __enum_access: __E,
                         __version_map: &'de _serde_version::VersionMap,
-                    ) -> _serde::export::Result<(Self, __E::Variant), __E::Error>
+                    ) -> _serde::export::Result<(Self, __E::Variant), _serde_version::Error<__E::Error>>
                     where
                         __E: _serde::de::EnumAccess<'de>,
                     {
                         match __version_map.get(#deser_name) {
                             #(#variant_arms)*
-                            Some(v) => panic!("unhandled version"),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
                             None => <__E as _serde::de::EnumAccess<'de>>::variant_seed(__enum_access, std::marker::PhantomData),
                         }
                     }
