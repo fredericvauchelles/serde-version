@@ -1,6 +1,6 @@
 [package]
 name = "serde_version_derive"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Frédéric Vauchelles <frederic.vauchelles@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "Versioning support for Serde"
@@ -9,7 +9,7 @@ repository = "https://github.com/fredpointzero/serde-version"
 keywords = ["serde", "version", "serialization"]
 categories = ["encoding"]
 readme = "README.md"
-include = ["Cargo.toml", "src/**/*.rs"]
+include = ["Cargo.toml", "src/**/*.rs", "README.md"]
 
 [lib]
 name = "serde_version_derive"
