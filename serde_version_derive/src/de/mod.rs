@@ -67,30 +67,38 @@ pub fn expand_derive_deserialize_versioned(
                         }
                 })
                 .collect::<Vec<_>>();
-            let next_key_arms= versions.iter()
+            let next_key_arms = versions
+                .iter()
                 .enumerate()
                 .map(|(i, version)| {
                     let version_number = i + 1;
                     let path = &version.path;
                     quote! {
-                            Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned>::next_key(__map_access, __version_map),
-                                |v| _serde::export::Option::map(v, _serde::export::Into::into)
+                        Some(#version_number) => _serde::export::Result::map(
+                            <#path as _serde_version::DeserializeVersioned>::next_key(
+                                __map_access,
+                                __version_map
                             ),
-                        }
+                            |v| _serde::export::Option::map(v, _serde::export::Into::into)
+                        ),
+                    }
                 })
                 .collect::<Vec<_>>();
-            let variant_arms= versions.iter()
+            let variant_arms = versions
+                .iter()
                 .enumerate()
                 .map(|(i, version)| {
                     let version_number = i + 1;
                     let path = &version.path;
                     quote! {
-                            Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned>::variant(__enum_access, __version_map),
-                                |(v, variant)| (_serde::export::Into::into(v), variant)
+                        Some(#version_number) => _serde::export::Result::map(
+                            <#path as _serde_version::DeserializeVersioned>::variant(
+                                __enum_access,
+                                __version_map
                             ),
-                        }
+                            |(v, variant)| (_serde::export::Into::into(v), variant)
+                        ),
+                    }
                 })
                 .collect::<Vec<_>>();
 
@@ -104,8 +112,14 @@ pub fn expand_derive_deserialize_versioned(
                         __D: _serde::Deserializer<'de>, {
                         match __version_map.get(#deser_name) {
                             #(#deserialize_arms)*
-                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
-                            None => <Self as _serde::Deserialize<'de>>::deserialize(__deserializer),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(
+                                _serde_version::InvalidVersionError {
+                                    version: *v,
+                                    type_id: #deser_name.to_owned()
+                                }
+                            )),
+                            None => <Self as _serde::Deserialize<'de>>::deserialize(__deserializer)
+                                .map_err(_serde_version::Error::DeserializeError),
                         }
                     }
 
@@ -119,8 +133,16 @@ pub fn expand_derive_deserialize_versioned(
                     {
                         match __version_map.get(#deser_name) {
                             #(#next_element_arms)*
-                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
-                            None => <__S as _serde::de::SeqAccess<'de>>::next_element_seed(__seq_access, std::marker::PhantomData),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(
+                                _serde_version::InvalidVersionError {
+                                    version: *v,
+                                    type_id: #deser_name.to_owned()
+                                }
+                            )),
+                            None => <__S as _serde::de::SeqAccess<'de>>::next_element_seed(
+                                __seq_access,
+                                std::marker::PhantomData
+                            ).map_err(_serde_version::Error::DeserializeError),
                         }
                     }
 
@@ -134,8 +156,16 @@ pub fn expand_derive_deserialize_versioned(
                     {
                         match __version_map.get(#deser_name) {
                             #(#next_value_arms)*
-                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
-                            None => <__M as _serde::de::MapAccess<'de>>::next_value_seed(__map_access, std::marker::PhantomData),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(
+                                _serde_version::InvalidVersionError {
+                                    version: *v,
+                                    type_id: #deser_name.to_owned()
+                                }
+                            )),
+                            None => <__M as _serde::de::MapAccess<'de>>::next_value_seed(
+                                __map_access,
+                                std::marker::PhantomData
+                            ).map_err(_serde_version::Error::DeserializeError),
                         }
                     }
 
@@ -149,8 +179,16 @@ pub fn expand_derive_deserialize_versioned(
                     {
                         match __version_map.get(#deser_name) {
                             #(#next_key_arms)*
-                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
-                            None => <__M as _serde::de::MapAccess<'de>>::next_key_seed(__map_access, std::marker::PhantomData),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(
+                                _serde_version::InvalidVersionError {
+                                    version: *v,
+                                    type_id: #deser_name.to_owned()
+                                }
+                            )),
+                            None => <__M as _serde::de::MapAccess<'de>>::next_key_seed(
+                                __map_access,
+                                std::marker::PhantomData
+                            ).map_err(_serde_version::Error::DeserializeError),
                         }
                     }
 
@@ -164,8 +202,16 @@ pub fn expand_derive_deserialize_versioned(
                     {
                         match __version_map.get(#deser_name) {
                             #(#variant_arms)*
-                            Some(v) => Err(_serde_version::Error::InvalidVersionError(_serde_version::InvalidVersionError { version: v, type_id: #deser_name })),
-                            None => <__E as _serde::de::EnumAccess<'de>>::variant_seed(__enum_access, std::marker::PhantomData),
+                            Some(v) => Err(_serde_version::Error::InvalidVersionError(
+                                _serde_version::InvalidVersionError {
+                                    version: *v,
+                                    type_id: #deser_name.to_owned()
+                                }
+                            )),
+                            None => <__E as _serde::de::EnumAccess<'de>>::variant_seed(
+                                __enum_access,
+                                std::marker::PhantomData
+                            ).map_err(_serde_version::Error::DeserializeError),
                         }
                     }
                 }

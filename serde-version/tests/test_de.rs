@@ -30,6 +30,7 @@ impl Default for Av2 {
 struct A {
     c: u8,
 }
+
 impl From<Av1> for A {
     fn from(v: Av1) -> Self {
         Self { c: v.a }
