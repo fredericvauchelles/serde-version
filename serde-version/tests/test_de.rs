@@ -4,7 +4,9 @@
 extern crate serde_version_derive;
 
 use serde::Deserialize;
-use serde_version::{DeserializeVersioned, VersionMap, VersionedDeserializer};
+use serde_version::{
+    DeserializeVersioned, Error, InvalidVersionError, VersionMap, VersionedDeserializer,
+};
 
 #[derive(Deserialize)]
 #[serde(rename(deserialize = "A"))]
@@ -30,6 +32,7 @@ impl Default for Av2 {
 struct A {
     c: u8,
 }
+
 impl From<Av1> for A {
     fn from(v: Av1) -> Self {
         Self { c: v.a }
@@ -59,6 +62,24 @@ fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug>(
 
 macro_rules! declare_tests_versions {
     (
+        fail $name:ident ($($version_ty:expr => $version_num:expr),*) { $($ser:expr => $ty:ty: $value:expr,)+ }
+        $($tt:tt)*
+    ) => {
+            #[test]
+            fn $name() {
+                let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
+                    .into_iter().collect::<VersionMap>();
+                $(
+                    let mut ron_deserializer = ron::de::Deserializer::from_str($ser).unwrap();
+                    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, &version_map);
+                    let de = <$ty as DeserializeVersioned>::deserialize_versioned(deserializer, &version_map).unwrap_err();
+                    assert_eq!($value, de);
+                )+
+            }
+
+            declare_tests_versions! { $($tt)* }
+    };
+    (
         $name:ident ($($version_ty:expr => $version_num:expr),*) { $($ser:expr => $value:expr,)+ }
         $($tt:tt)*
     ) => {
@@ -72,19 +93,31 @@ macro_rules! declare_tests_versions {
             }
 
             declare_tests_versions! { $($tt)* }
-        };
-        () => { }
-    }
+    };
+    () => { }
+}
 
 declare_tests_versions! {
     test_version ("A" => 1) {
         "A(a: 8)" => A { c: 8 },
         "ContainsA(a: A(a: 4))" => ContainsA { a: A { c: 4 }},
     }
+    test_current_version ("A" => 3) {
+        "A(c: 8)" => A { c: 8 },
+        "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
+    }
+    test_no_version () {
+        "A(c: 8)" => A { c: 8 },
+        "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
+    }
     test_default_version ("A" => 2) {
         "A(b: 8)" => A { c: 8 },
         "ContainsA(a: A(b: 4))" => ContainsA { a: A { c: 4 }},
         "A()" => A { c: 5 },
         "ContainsA(a: A())" => ContainsA { a: A { c: 5 }},
+    }
+    fail test_unknown_version ("A" => 4) {
+        "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 4, type_id: "A".to_owned() }),
+        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 4 for A"))),
     }
 }
