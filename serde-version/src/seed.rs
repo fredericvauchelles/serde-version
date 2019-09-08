@@ -3,6 +3,9 @@ use crate::VersionedDeserializer;
 use serde::de::DeserializeSeed;
 use serde::Deserializer;
 
+/// Seed wrapper:
+///
+/// Wrap calls to deserialize with a VersionedDeserializer
 pub struct VersionedSeed<'v, S> {
     seed: S,
     version_map: &'v VersionMap,

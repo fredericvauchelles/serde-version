@@ -187,6 +187,7 @@ pub use deserializer::{VersionMap, VersionedDeserializer};
 use serde::de::{EnumAccess, MapAccess, SeqAccess};
 use std::fmt::Display;
 
+/// Error used when a provided version number is not handled by current code
 #[derive(Debug, Hash, PartialEq, Eq, Fail)]
 #[fail(display = "Invalid version {} for {}", version, type_id)]
 pub struct InvalidVersionError {
@@ -194,6 +195,7 @@ pub struct InvalidVersionError {
     pub type_id: String,
 }
 
+/// Error wrapper to add the version number related errors
 #[derive(Debug, Hash, PartialEq, Eq)]
 pub enum Error<E> {
     DeserializeError(E),

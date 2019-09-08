@@ -102,6 +102,14 @@ declare_tests_versions! {
         "A(a: 8)" => A { c: 8 },
         "ContainsA(a: A(a: 4))" => ContainsA { a: A { c: 4 }},
     }
+    test_current_version ("A" => 3) {
+        "A(c: 8)" => A { c: 8 },
+        "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
+    }
+    test_no_version () {
+        "A(c: 8)" => A { c: 8 },
+        "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
+    }
     test_default_version ("A" => 2) {
         "A(b: 8)" => A { c: 8 },
         "ContainsA(a: A(b: 4))" => ContainsA { a: A { c: 4 }},

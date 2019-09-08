@@ -5,6 +5,7 @@ use crate::DeserializeVersioned;
 use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess, Visitor};
 use serde::{Deserialize, Deserializer};
 
+/// Wrap a visitor to wrap seed or call specialized methods
 pub struct VersionedVisitor<'v, V> {
     visitor: V,
     version_map: &'v VersionMap,
