@@ -1,6 +1,6 @@
 [package]
 name = "serde_version_derive"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["Frédéric Vauchelles <frederic.vauchelles@gmail.com>"]
 license = "MIT OR Apache-2.0"
 description = "Versioning support for Serde"
