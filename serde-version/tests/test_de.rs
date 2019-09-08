@@ -110,6 +110,6 @@ declare_tests_versions! {
     }
     fail test_unknown_version ("A" => 4) {
         "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 4, type_id: "A".to_owned() }),
-        "ContainsA(a: A(b: 4))" => ContainsA: Error::InvalidVersionError(InvalidVersionError { version: 4, type_id: "A".to_owned() }),
+        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 4 for A"))),
     }
 }
