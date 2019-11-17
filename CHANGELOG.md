@@ -6,7 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-- Added changelog
+* Added changelog
+* The `v` attribute is an alias for the `version` attribute.
+
+### Updated
+* The `version` attribute now requires an explicit index.
+* The `versions` attribute now requires an entry for the current version.
+
+### Removed
+* The `#[versions("Av1", "Av2")]` syntax is not supported anymore, instead use the more explicit version
+  `#[versions(v(index = 1, type = "Av1"), v(index = 2, type = "Av2"))]`
 
 ## [0.2.3] - 2019-09-08
 ### Added
