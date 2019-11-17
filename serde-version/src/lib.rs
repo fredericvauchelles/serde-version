@@ -278,82 +278,55 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
         _version_map: &'de VersionMap,
     ) -> Result<Self, Error<D::Error>>
     where
-        D: serde::de::Deserializer<'de>,
-    {
-        Self::deserialize(deserializer).map_err(Error::DeserializeError)
-    }
+        D: serde::de::Deserializer<'de>;
 
     /// Entry point for deserializing an element in a sequence
     ///
     /// Implement this method to specialize the deserialization for a particular type.
     ///
     /// The default implementation ignore the versioning
-    #[inline]
     fn next_element<S>(
         seq_access: &mut S,
         _version_map: &'de VersionMap,
     ) -> Result<Option<Self>, Error<S::Error>>
     where
-        S: SeqAccess<'de>,
-    {
-        seq_access
-            .next_element_seed(std::marker::PhantomData)
-            .map_err(Error::DeserializeError)
-    }
+        S: SeqAccess<'de>;
 
     /// Entry point for deserializing the next map value
     ///
     /// Implement this method to specialize the deserialization for a particular type.
     ///
     /// The default implementation ignore the versioning
-    #[inline]
     fn next_value<M>(
         map_access: &mut M,
         _version_map: &'de VersionMap,
     ) -> Result<Self, Error<M::Error>>
     where
-        M: MapAccess<'de>,
-    {
-        map_access
-            .next_value_seed(std::marker::PhantomData)
-            .map_err(Error::DeserializeError)
-    }
+        M: MapAccess<'de>;
 
     /// Entry point for deserializing the next key value
     ///
     /// Implement this method to specialize the deserialization for a particular type.
     ///
     /// The default implementation ignore the versioning
-    #[inline]
     fn next_key<M>(
         map_access: &mut M,
         _version_map: &'de VersionMap,
     ) -> Result<Option<Self>, Error<M::Error>>
     where
-        M: MapAccess<'de>,
-    {
-        map_access
-            .next_key_seed(std::marker::PhantomData)
-            .map_err(Error::DeserializeError)
-    }
+        M: MapAccess<'de>;
 
     /// Entry point for deserializing the next variant
     ///
     /// Implement this method to specialize the deserialization for a particular type.
     ///
     /// The default implementation ignore the versioning
-    #[inline]
     fn variant<E>(
         enum_access: E,
         _version_map: &'de VersionMap,
     ) -> Result<(Self, E::Variant), Error<E::Error>>
     where
-        E: EnumAccess<'de>,
-    {
-        enum_access
-            .variant_seed(std::marker::PhantomData)
-            .map_err(Error::DeserializeError)
-    }
+        E: EnumAccess<'de>;
 }
 
 impl<'de, T: serde::Deserialize<'de>> DeserializeVersioned<'de> for T {
@@ -366,5 +339,57 @@ impl<'de, T: serde::Deserialize<'de>> DeserializeVersioned<'de> for T {
     {
         let version_deserializer = VersionedDeserializer::new(deserializer, version_map);
         T::deserialize(version_deserializer)
+    }
+
+    #[inline]
+    default fn next_element<S>(
+        seq_access: &mut S,
+        _version_map: &'de VersionMap,
+    ) -> Result<Option<Self>, Error<S::Error>>
+    where
+        S: SeqAccess<'de>,
+    {
+        seq_access
+            .next_element_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
+    }
+
+    #[inline]
+    default fn next_value<M>(
+        map_access: &mut M,
+        _version_map: &'de VersionMap,
+    ) -> Result<Self, Error<M::Error>>
+    where
+        M: MapAccess<'de>,
+    {
+        map_access
+            .next_value_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
+    }
+
+    #[inline]
+    default fn next_key<M>(
+        map_access: &mut M,
+        _version_map: &'de VersionMap,
+    ) -> Result<Option<Self>, Error<M::Error>>
+    where
+        M: MapAccess<'de>,
+    {
+        map_access
+            .next_key_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
+    }
+
+    #[inline]
+    default fn variant<E>(
+        enum_access: E,
+        _version_map: &'de VersionMap,
+    ) -> Result<(Self, E::Variant), Error<E::Error>>
+    where
+        E: EnumAccess<'de>,
+    {
+        enum_access
+            .variant_seed(std::marker::PhantomData)
+            .map_err(Error::DeserializeError)
     }
 }
