@@ -181,6 +181,7 @@ extern crate failure;
 
 mod deserializer;
 mod seed;
+mod version_group;
 mod visitor;
 
 pub use deserializer::{VersionMap, VersionedDeserializer};
