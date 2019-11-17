@@ -75,7 +75,7 @@
 //! // It must implement Deserialize and DeserializeVersioned
 //! #[derive(Deserialize, DeserializeVersioned)]
 //! // We use the versions attribute to define the previous versions
-//! #[versions("Av1")]
+//! #[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
 //! // So, Version n°1 of A is Av1, Versions n°2 (current) of A is A
 //! struct A {
 //!   // We moved a property
@@ -116,7 +116,7 @@
 //! #   a: u8
 //! # }
 //! # #[derive(Deserialize, DeserializeVersioned, PartialEq, Debug)]
-//! # #[versions("Av1")]
+//! # #[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
 //! # struct A {
 //! #   b: u8
 //! # }
