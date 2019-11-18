@@ -13,7 +13,7 @@ extern crate serde_version_derive;
 pub mod common;
 
 use serde::Deserialize;
-use serde_version::{DefaultVersionMap, DeserializeVersioned, VersionedDeserializer};
+use serde_version::DefaultVersionMap;
 use std::fmt::Debug;
 
 #[derive(Deserialize)]
