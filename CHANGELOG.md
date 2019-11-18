@@ -8,10 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * Added changelog
 * The `v` attribute is an alias for the `version` attribute.
+* Added the versioned group pattern with example
 
 ### Updated
 * The `version` attribute now requires an explicit index.
 * The `versions` attribute now requires an entry for the current version.
+* Use a trait for VersionMap instead of a HashMap<String, usize>
 
 ### Removed
 * The `#[versions("Av1", "Av2")]` syntax is not supported anymore, instead use the more explicit version
