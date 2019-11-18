@@ -24,6 +24,7 @@ serde_version_derive = { version = "0.2.3", optional = true, path = "../serde_ve
 serde_version_derive = { version = "0.2.3", path = "../serde_version_derive" }
 serde = { version = "^1.0.0", features = ["derive"] }
 ron = "^0.5.0"
+lazy_static = "1.4.0"
 
 [features]
 default = []

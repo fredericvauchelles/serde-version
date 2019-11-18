@@ -5,7 +5,8 @@ extern crate serde_version_derive;
 
 use serde::Deserialize;
 use serde_version::{
-    DeserializeVersioned, Error, InvalidVersionError, VersionMap, VersionedDeserializer,
+    DefaultVersionMap, DeserializeVersioned, Error, InvalidVersionError, VersionMap,
+    VersionedDeserializer,
 };
 
 #[derive(Deserialize)]
@@ -53,14 +54,15 @@ struct ContainsA {
     a: A,
 }
 
-fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug>(
+fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug, VM: VersionMap>(
     value: T,
     from: &str,
-    version_map: &VersionMap,
+    version_map: &VM,
 ) {
     let mut ron_deserializer = ron::de::Deserializer::from_str(from).unwrap();
     let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
-    let de = <T as DeserializeVersioned>::deserialize_versioned(deserializer, version_map).unwrap();
+    let de =
+        <T as DeserializeVersioned<VM>>::deserialize_versioned(deserializer, version_map).unwrap();
     assert_eq!(value, de);
 }
 
@@ -72,7 +74,7 @@ macro_rules! declare_tests_versions {
             #[test]
             fn $name() {
                 let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
-                    .into_iter().collect::<VersionMap>();
+                    .into_iter().collect::<DefaultVersionMap>();
                 $(
                     let mut ron_deserializer = ron::de::Deserializer::from_str($ser).unwrap();
                     let deserializer = VersionedDeserializer::new(&mut ron_deserializer, &version_map);
@@ -90,7 +92,7 @@ macro_rules! declare_tests_versions {
             #[test]
             fn $name() {
                 let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
-                    .into_iter().collect::<VersionMap>();
+                    .into_iter().collect::<DefaultVersionMap>();
                 $(
                     execute_test($value, $ser, &version_map);
                 )+

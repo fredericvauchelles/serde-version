@@ -1,25 +1,25 @@
-use super::VersionMap;
-use crate::VersionedDeserializer;
+use crate::{VersionMap, VersionedDeserializer};
 use serde::de::DeserializeSeed;
 use serde::Deserializer;
 
 /// Seed wrapper:
 ///
 /// Wrap calls to deserialize with a VersionedDeserializer
-pub struct VersionedSeed<'v, S> {
+pub struct VersionedSeed<'v, S, VM> {
     seed: S,
-    version_map: &'v VersionMap,
+    version_map: &'v VM,
 }
 
-impl<'v, S> VersionedSeed<'v, S> {
-    pub fn new(seed: S, version_map: &'v VersionMap) -> Self {
+impl<'v, S, VM> VersionedSeed<'v, S, VM> {
+    pub fn new(seed: S, version_map: &'v VM) -> Self {
         Self { seed, version_map }
     }
 }
 
-impl<'de, 'v, S> DeserializeSeed<'de> for VersionedSeed<'de, S>
+impl<'de, 'v, S, VM> DeserializeSeed<'de> for VersionedSeed<'de, S, VM>
 where
     S: DeserializeSeed<'de>,
+    VM: VersionMap,
 {
     type Value = S::Value;
 
