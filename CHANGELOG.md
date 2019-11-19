@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ## [0.3.1]
-### Updated
+### Changed
 * To define the version for the current type, use `self` attribute instead of `type = "path to self"`
 * Use the [type_name](https://doc.rust-lang.org/std/intrinsics/fn.type_name.html) of a type as
   the key to find its version.
@@ -18,7 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * The `v` attribute is an alias for the `version` attribute.
 * Added the versioned group pattern with example
 
-### Updated
+### Changed
 * The `version` attribute now requires an explicit index.
 * The `versions` attribute now requires an entry for the current version.
 * Use a trait for VersionMap instead of a HashMap<String, usize>
