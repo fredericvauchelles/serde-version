@@ -37,10 +37,7 @@ pub fn expand_derive_deserialize_versioned(
                     .extend(cont_where_clause.predicates.iter().cloned())
             }
 
-            // TODO: Find the deserialization name from the serde attribute
-            //   (like `#[serde(rename(deserialize = "deser_name"))]`
-            let ident_string = ident.to_string();
-            let deser_name = syn::LitStr::new(&ident_string, ident.span());
+            let deser_name = quote! { _serde_version::exports::get_type_name::<Self>() };
 
             let last_version = *versions
                 .iter()

@@ -104,11 +104,11 @@ macro_rules! declare_tests_versions {
 }
 
 declare_tests_versions! {
-    test_version ("A" => 1) {
+    test_version ("test_de::A" => 1) {
         "A(a: 8)" => A { c: 8 },
         "ContainsA(a: A(a: 4))" => ContainsA { a: A { c: 4 }},
     }
-    test_current_version ("A" => 4) {
+    test_current_version ("test_de::A" => 4) {
         "A(c: 8)" => A { c: 8 },
         "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
     }
@@ -116,14 +116,14 @@ declare_tests_versions! {
         "A(c: 8)" => A { c: 8 },
         "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
     }
-    test_default_version ("A" => 3) {
+    test_default_version ("test_de::A" => 3) {
         "A(b: 8)" => A { c: 8 },
         "ContainsA(a: A(b: 4))" => ContainsA { a: A { c: 4 }},
         "A()" => A { c: 5 },
         "ContainsA(a: A())" => ContainsA { a: A { c: 5 }},
     }
-    fail test_unknown_version ("A" => 5) {
-        "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 5, type_id: "A".to_owned() }),
-        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 5 for A"))),
+    fail test_unknown_version ("test_de::A" => 5) {
+        "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 5, type_id: "test_de::A".to_owned() }),
+        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 5 for test_de::A"))),
     }
 }
