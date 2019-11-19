@@ -116,7 +116,7 @@
 //! #   a: u8
 //! # }
 //! # #[derive(Deserialize, DeserializeVersioned, PartialEq, Debug)]
-//! # #[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
+//! # #[versions(v(index = 1, type = "Av1"), v(index = 2, self))]
 //! # struct A {
 //! #   b: u8
 //! # }

@@ -32,7 +32,7 @@ impl Default for Av2 {
 #[versions(
     v(index = 1, type = "Av1"),
     version(index = 3, type = "Av2", default),
-    v(index = 4, type = "A")
+    v(index = 4, self)
 )]
 struct A {
     c: u8,
