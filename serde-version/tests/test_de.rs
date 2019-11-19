@@ -5,7 +5,8 @@ extern crate serde_version_derive;
 
 use serde::Deserialize;
 use serde_version::{
-    DeserializeVersioned, Error, InvalidVersionError, VersionMap, VersionedDeserializer,
+    DefaultVersionMap, DeserializeVersioned, Error, InvalidVersionError, VersionMap,
+    VersionedDeserializer,
 };
 
 #[derive(Deserialize)]
@@ -28,7 +29,11 @@ impl Default for Av2 {
 
 #[derive(Deserialize, PartialEq, DeserializeVersioned, Debug)]
 #[serde(rename(deserialize = "A"))]
-#[versions("Av1", version(type = "Av2", default))]
+#[versions(
+    v(index = 1, type = "Av1"),
+    version(index = 3, type = "Av2", default),
+    v(index = 4, type = "A")
+)]
 struct A {
     c: u8,
 }
@@ -49,14 +54,15 @@ struct ContainsA {
     a: A,
 }
 
-fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug>(
+fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug, VM: VersionMap>(
     value: T,
     from: &str,
-    version_map: &VersionMap,
+    version_map: &VM,
 ) {
     let mut ron_deserializer = ron::de::Deserializer::from_str(from).unwrap();
     let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
-    let de = <T as DeserializeVersioned>::deserialize_versioned(deserializer, version_map).unwrap();
+    let de =
+        <T as DeserializeVersioned<VM>>::deserialize_versioned(deserializer, version_map).unwrap();
     assert_eq!(value, de);
 }
 
@@ -68,7 +74,7 @@ macro_rules! declare_tests_versions {
             #[test]
             fn $name() {
                 let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
-                    .into_iter().collect::<VersionMap>();
+                    .into_iter().collect::<DefaultVersionMap>();
                 $(
                     let mut ron_deserializer = ron::de::Deserializer::from_str($ser).unwrap();
                     let deserializer = VersionedDeserializer::new(&mut ron_deserializer, &version_map);
@@ -86,7 +92,7 @@ macro_rules! declare_tests_versions {
             #[test]
             fn $name() {
                 let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
-                    .into_iter().collect::<VersionMap>();
+                    .into_iter().collect::<DefaultVersionMap>();
                 $(
                     execute_test($value, $ser, &version_map);
                 )+
@@ -102,7 +108,7 @@ declare_tests_versions! {
         "A(a: 8)" => A { c: 8 },
         "ContainsA(a: A(a: 4))" => ContainsA { a: A { c: 4 }},
     }
-    test_current_version ("A" => 3) {
+    test_current_version ("A" => 4) {
         "A(c: 8)" => A { c: 8 },
         "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
     }
@@ -110,14 +116,14 @@ declare_tests_versions! {
         "A(c: 8)" => A { c: 8 },
         "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
     }
-    test_default_version ("A" => 2) {
+    test_default_version ("A" => 3) {
         "A(b: 8)" => A { c: 8 },
         "ContainsA(a: A(b: 4))" => ContainsA { a: A { c: 4 }},
         "A()" => A { c: 5 },
         "ContainsA(a: A())" => ContainsA { a: A { c: 5 }},
     }
-    fail test_unknown_version ("A" => 4) {
-        "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 4, type_id: "A".to_owned() }),
-        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 4 for A"))),
+    fail test_unknown_version ("A" => 5) {
+        "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 5, type_id: "A".to_owned() }),
+        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 5 for A"))),
     }
 }

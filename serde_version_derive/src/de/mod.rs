@@ -1,6 +1,7 @@
 use ast::Container;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_util::prelude::*;
+use syn::export::ToTokens;
 
 pub fn expand_derive_deserialize_versioned(
     input: &syn::DeriveInput,
@@ -17,98 +18,130 @@ pub fn expand_derive_deserialize_versioned(
                     syn::Lifetime::new("'de", Span::call_site()),
                 )))
                 .into_iter()
+                .chain(Some(syn::GenericParam::Type(
+                    syn::parse2::<syn::TypeParam>(quote! { __VM }).unwrap(),
+                )))
                 .chain(generics.params)
                 .collect();
                 generics
             };
             let ident = &cont.ident;
             let ty_generics = cont.generics;
-            let where_clause = cont.generics.where_clause.as_ref();
+
+            let mut where_clause =
+                syn::parse2::<syn::WhereClause>(quote! { where __VM: _serde_version::VersionMap })
+                    .unwrap();
+            if let Some(cont_where_clause) = cont.generics.where_clause.as_ref() {
+                where_clause
+                    .predicates
+                    .extend(cont_where_clause.predicates.iter().cloned())
+            }
+
             // TODO: Find the deserialization name from the serde attribute
             //   (like `#[serde(rename(deserialize = "deser_name"))]`
-            let deser_name = syn::LitStr::new(&ident.to_string(), ident.span());
+            let ident_string = ident.to_string();
+            let deser_name = syn::LitStr::new(&ident_string, ident.span());
+
+            let last_version = *versions
+                .iter()
+                .find(|(_, v)| &v.path.to_token_stream().to_string() == &ident_string)
+                // The self type is always described in the version attribute
+                // This is enforced when building the Container
+                .unwrap()
+                .0;
 
             let deserialize_arms = versions.iter()
-                .enumerate()
-                .map(|(i, version)| {
-                    let version_number = i + 1;
-                    let path = &version.path;
-                    quote! {
+                .filter_map(|(version_number, version)| {
+                    if version_number != &last_version {
+                        let path = &version.path;
+                        Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned>::deserialize_versioned(__deserializer, __version_map),
+                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::deserialize_versioned(__deserializer, __version_map),
                                 _serde::export::Into::into
                             ),
-                        }
+                        })
+                    }
+                    else {
+                        None
+                    }
                 })
                 .collect::<Vec<_>>();
             let next_element_arms = versions.iter()
-                .enumerate()
-                .map(|(i, version)| {
-                    let version_number = i + 1;
-                    let path = &version.path;
-                    quote! {
+                .filter_map(|(version_number, version)| {
+                    if version_number != &last_version {
+                        let path = &version.path;
+                        Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned>::next_element(__seq_access, __version_map),
+                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_element(__seq_access, __version_map),
                                 |v| _serde::export::Option::map(v, _serde::export::Into::into)
                             ),
-                        }
+                        })
+                    }
+                    else {
+                        None
+                    }
                 })
                 .collect::<Vec<_>>();
             let next_value_arms= versions.iter()
-                .enumerate()
-                .map(|(i, version)| {
-                    let version_number = i + 1;
-                    let path = &version.path;
-                    quote! {
+                .filter_map(|(version_number, version)| {
+                    if version_number != &last_version {
+                        let path = &version.path;
+                        Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned>::next_value(__map_access, __version_map),
+                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_value(__map_access, __version_map),
                                 _serde::export::Into::into
                             ),
-                        }
+                        })
+                    }
+                    else {
+                        None
+                    }
                 })
                 .collect::<Vec<_>>();
             let next_key_arms = versions
                 .iter()
-                .enumerate()
-                .map(|(i, version)| {
-                    let version_number = i + 1;
-                    let path = &version.path;
-                    quote! {
-                        Some(#version_number) => _serde::export::Result::map(
-                            <#path as _serde_version::DeserializeVersioned>::next_key(
-                                __map_access,
-                                __version_map
+                .map(|(version_number, version)| {
+                    if version_number != &last_version {
+                        let path = &version.path;
+                        Some(quote! {
+                            Some(#version_number) => _serde::export::Result::map(
+                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_key(
+                                    __map_access,
+                                    __version_map
+                                ),
+                                |v| _serde::export::Option::map(v, _serde::export::Into::into)
                             ),
-                            |v| _serde::export::Option::map(v, _serde::export::Into::into)
-                        ),
+                        })
+                    } else {
+                        None
                     }
                 })
                 .collect::<Vec<_>>();
             let variant_arms = versions
                 .iter()
-                .enumerate()
-                .map(|(i, version)| {
-                    let version_number = i + 1;
-                    let path = &version.path;
-                    quote! {
-                        Some(#version_number) => _serde::export::Result::map(
-                            <#path as _serde_version::DeserializeVersioned>::variant(
-                                __enum_access,
-                                __version_map
+                .filter_map(|(version_number, version)| {
+                    if version_number != &last_version {
+                        let path = &version.path;
+                        Some(quote! {
+                            Some(#version_number) => _serde::export::Result::map(
+                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::variant(
+                                    __enum_access,
+                                    __version_map
+                                ),
+                                |(v, variant)| (_serde::export::Into::into(v), variant)
                             ),
-                            |(v, variant)| (_serde::export::Into::into(v), variant)
-                        ),
+                        })
+                    } else {
+                        None
                     }
                 })
                 .collect::<Vec<_>>();
 
-            let last_version = versions.len() + 1;
-
             let code = quote! {
-                impl #de_impl_generics _serde_version::DeserializeVersioned<'de> for #ident #ty_generics #where_clause {
+                impl #de_impl_generics _serde_version::DeserializeVersioned<'de, __VM> for #ident #ty_generics #where_clause {
                     fn deserialize_versioned<__D>(
                         __deserializer: __D,
-                        __version_map: &'de _serde_version::VersionMap
+                        __version_map: &'de __VM
                     ) -> _serde::export::Result<Self, _serde_version::Error<__D::Error>>
                     where
                         __D: _serde::Deserializer<'de>, {
@@ -118,7 +151,7 @@ pub fn expand_derive_deserialize_versioned(
                                 .map_err(_serde_version::Error::DeserializeError),
                             Some(v) => Err(_serde_version::Error::InvalidVersionError(
                                 _serde_version::InvalidVersionError {
-                                    version: *v,
+                                    version: v,
                                     type_id: #deser_name.to_owned()
                                 }
                             )),
@@ -128,7 +161,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn next_element<__S>(
                         __seq_access: &mut __S,
-                        __version_map: &'de _serde_version::VersionMap,
+                        __version_map: &'de __VM,
                     ) -> _serde::export::Result<Option<Self>, _serde_version::Error<__S::Error>>
                     where
                         __S: _serde::de::SeqAccess<'de>
@@ -141,7 +174,7 @@ pub fn expand_derive_deserialize_versioned(
                             ).map_err(_serde_version::Error::DeserializeError),
                             Some(v) => Err(_serde_version::Error::InvalidVersionError(
                                 _serde_version::InvalidVersionError {
-                                    version: *v,
+                                    version: v,
                                     type_id: #deser_name.to_owned()
                                 }
                             ))
@@ -151,7 +184,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn next_value<__M>(
                         __map_access: &mut __M,
-                        __version_map: &'de _serde_version::VersionMap
+                        __version_map: &'de __VM
                     ) -> _serde::export::Result<Self, _serde_version::Error<__M::Error>>
                     where
                         __M: _serde::de::MapAccess<'de>,
@@ -164,7 +197,7 @@ pub fn expand_derive_deserialize_versioned(
                             ).map_err(_serde_version::Error::DeserializeError),
                             Some(v) => Err(_serde_version::Error::InvalidVersionError(
                                 _serde_version::InvalidVersionError {
-                                    version: *v,
+                                    version: v,
                                     type_id: #deser_name.to_owned()
                                 }
                             )),
@@ -174,7 +207,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn next_key<__M>(
                         __map_access: &mut __M,
-                        __version_map: &'de _serde_version::VersionMap,
+                        __version_map: &'de __VM,
                     ) -> _serde::export::Result<Option<Self>, _serde_version::Error<__M::Error>>
                     where
                         __M: _serde::de::MapAccess<'de>,
@@ -187,7 +220,7 @@ pub fn expand_derive_deserialize_versioned(
                             ).map_err(_serde_version::Error::DeserializeError),
                             Some(v) => Err(_serde_version::Error::InvalidVersionError(
                                 _serde_version::InvalidVersionError {
-                                    version: *v,
+                                    version: v,
                                     type_id: #deser_name.to_owned()
                                 }
                             )),
@@ -197,7 +230,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn variant<__E>(
                         __enum_access: __E,
-                        __version_map: &'de _serde_version::VersionMap,
+                        __version_map: &'de __VM,
                     ) -> _serde::export::Result<(Self, __E::Variant), _serde_version::Error<__E::Error>>
                     where
                         __E: _serde::de::EnumAccess<'de>,
@@ -210,7 +243,7 @@ pub fn expand_derive_deserialize_versioned(
                             ).map_err(_serde_version::Error::DeserializeError),
                             Some(v) => Err(_serde_version::Error::InvalidVersionError(
                                 _serde_version::InvalidVersionError {
-                                    version: *v,
+                                    version: v,
                                     type_id: #deser_name.to_owned()
                                 }
                             )),

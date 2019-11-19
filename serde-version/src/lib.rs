@@ -75,7 +75,7 @@
 //! // It must implement Deserialize and DeserializeVersioned
 //! #[derive(Deserialize, DeserializeVersioned)]
 //! // We use the versions attribute to define the previous versions
-//! #[versions("Av1")]
+//! #[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
 //! // So, Version n°1 of A is Av1, Versions n°2 (current) of A is A
 //! struct A {
 //!   // We moved a property
@@ -116,7 +116,7 @@
 //! #   a: u8
 //! # }
 //! # #[derive(Deserialize, DeserializeVersioned, PartialEq, Debug)]
-//! # #[versions("Av1")]
+//! # #[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
 //! # struct A {
 //! #   b: u8
 //! # }
@@ -140,7 +140,7 @@
 //!
 //!   // First get a header
 //!   // Here, we use the version 1 of `A`
-//!   let versions: serde_version::VersionMap = ron::de::from_str(r#"{ "A": 1 }"#).unwrap();
+//!   let versions: serde_version::DefaultVersionMap = ron::de::from_str(r#"{ "A": 1 }"#).unwrap();
 //!   
 //!   // Let's deserialize some values
 //!   
@@ -183,7 +183,7 @@ mod deserializer;
 mod seed;
 mod visitor;
 
-pub use deserializer::{VersionMap, VersionedDeserializer};
+pub use deserializer::{DefaultVersionMap, VersionMap, VersionedDeserializer};
 use serde::de::{EnumAccess, MapAccess, SeqAccess};
 use std::fmt::Display;
 
@@ -267,7 +267,9 @@ where
 ///
 /// Use the `derive` feature to generate the implementation from `#[derive(DeserializeVersioned)]`
 /// and `#[versions(...)]` attribute.
-pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
+pub trait DeserializeVersioned<'de, VM: VersionMap = DefaultVersionMap>:
+    serde::Deserialize<'de>
+{
     /// Entry point for the versioned deserialization
     ///
     /// Implement this method to specialize the deserialization for a particular type.
@@ -275,23 +277,73 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
     /// The default implementation ignore the versioning
     fn deserialize_versioned<D>(
         deserializer: D,
-        _version_map: &'de VersionMap,
+        _version_map: &'de VM,
     ) -> Result<Self, Error<D::Error>>
     where
-        D: serde::de::Deserializer<'de>,
-    {
-        Self::deserialize(deserializer).map_err(Error::DeserializeError)
-    }
+        D: serde::de::Deserializer<'de>;
 
     /// Entry point for deserializing an element in a sequence
     ///
     /// Implement this method to specialize the deserialization for a particular type.
     ///
     /// The default implementation ignore the versioning
-    #[inline]
     fn next_element<S>(
         seq_access: &mut S,
-        _version_map: &'de VersionMap,
+        _version_map: &'de VM,
+    ) -> Result<Option<Self>, Error<S::Error>>
+    where
+        S: SeqAccess<'de>;
+
+    /// Entry point for deserializing the next map value
+    ///
+    /// Implement this method to specialize the deserialization for a particular type.
+    ///
+    /// The default implementation ignore the versioning
+    fn next_value<M>(map_access: &mut M, _version_map: &'de VM) -> Result<Self, Error<M::Error>>
+    where
+        M: MapAccess<'de>;
+
+    /// Entry point for deserializing the next key value
+    ///
+    /// Implement this method to specialize the deserialization for a particular type.
+    ///
+    /// The default implementation ignore the versioning
+    fn next_key<M>(
+        map_access: &mut M,
+        _version_map: &'de VM,
+    ) -> Result<Option<Self>, Error<M::Error>>
+    where
+        M: MapAccess<'de>;
+
+    /// Entry point for deserializing the next variant
+    ///
+    /// Implement this method to specialize the deserialization for a particular type.
+    ///
+    /// The default implementation ignore the versioning
+    fn variant<E>(
+        enum_access: E,
+        _version_map: &'de VM,
+    ) -> Result<(Self, E::Variant), Error<E::Error>>
+    where
+        E: EnumAccess<'de>;
+}
+
+impl<'de, VM: VersionMap, T: serde::Deserialize<'de>> DeserializeVersioned<'de, VM> for T {
+    default fn deserialize_versioned<D>(
+        deserializer: D,
+        version_map: &'de VM,
+    ) -> Result<Self, Error<D::Error>>
+    where
+        D: serde::de::Deserializer<'de>,
+    {
+        let version_deserializer = VersionedDeserializer::new(deserializer, version_map);
+        T::deserialize(version_deserializer)
+    }
+
+    #[inline]
+    default fn next_element<S>(
+        seq_access: &mut S,
+        _version_map: &'de VM,
     ) -> Result<Option<Self>, Error<S::Error>>
     where
         S: SeqAccess<'de>,
@@ -301,15 +353,10 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
             .map_err(Error::DeserializeError)
     }
 
-    /// Entry point for deserializing the next map value
-    ///
-    /// Implement this method to specialize the deserialization for a particular type.
-    ///
-    /// The default implementation ignore the versioning
     #[inline]
-    fn next_value<M>(
+    default fn next_value<M>(
         map_access: &mut M,
-        _version_map: &'de VersionMap,
+        _version_map: &'de VM,
     ) -> Result<Self, Error<M::Error>>
     where
         M: MapAccess<'de>,
@@ -319,15 +366,10 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
             .map_err(Error::DeserializeError)
     }
 
-    /// Entry point for deserializing the next key value
-    ///
-    /// Implement this method to specialize the deserialization for a particular type.
-    ///
-    /// The default implementation ignore the versioning
     #[inline]
-    fn next_key<M>(
+    default fn next_key<M>(
         map_access: &mut M,
-        _version_map: &'de VersionMap,
+        _version_map: &'de VM,
     ) -> Result<Option<Self>, Error<M::Error>>
     where
         M: MapAccess<'de>,
@@ -337,15 +379,10 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
             .map_err(Error::DeserializeError)
     }
 
-    /// Entry point for deserializing the next variant
-    ///
-    /// Implement this method to specialize the deserialization for a particular type.
-    ///
-    /// The default implementation ignore the versioning
     #[inline]
-    fn variant<E>(
+    default fn variant<E>(
         enum_access: E,
-        _version_map: &'de VersionMap,
+        _version_map: &'de VM,
     ) -> Result<(Self, E::Variant), Error<E::Error>>
     where
         E: EnumAccess<'de>,
@@ -353,18 +390,5 @@ pub trait DeserializeVersioned<'de>: serde::Deserialize<'de> {
         enum_access
             .variant_seed(std::marker::PhantomData)
             .map_err(Error::DeserializeError)
-    }
-}
-
-impl<'de, T: serde::Deserialize<'de>> DeserializeVersioned<'de> for T {
-    default fn deserialize_versioned<D>(
-        deserializer: D,
-        version_map: &'de VersionMap,
-    ) -> Result<Self, Error<D::Error>>
-    where
-        D: serde::de::Deserializer<'de>,
-    {
-        let version_deserializer = VersionedDeserializer::new(deserializer, version_map);
-        T::deserialize(version_deserializer)
     }
 }

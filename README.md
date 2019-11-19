@@ -61,6 +61,8 @@ There is no use case where versioning tuples and the unit type is useful.
 
 # Usage
 
+## Versioned types
+
 To describe the previous versions of a type, we use the `#[versions(...)]` attribute along with
 the `DeserializeVersioned` trait.
 
@@ -79,7 +81,7 @@ a: u8
 // It must implement Deserialize and DeserializeVersioned
 #[derive(Deserialize, DeserializeVersioned)]
 // We use the versions attribute to define the previous versions
-#[versions("Av1")]
+#[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
 // So, Version n°1 of A is Av1, Versions n°2 (current) of A is A
 struct A {
 // We moved a property
@@ -134,7 +136,17 @@ assert_eq!(value.a, A { b: 2});
 }
 ```
  
-## `VersionedDeserializer`
+### `VersionedDeserializer`
 
 Under the hood, `deserialize_version` wraps the provided deserializer with 
 the `VersionedDeserializer` to support the versioning.
+
+## Versioned groups
+
+A version group is a set of types with their associated version.
+It is often easier to use a version number for multiple types together.
+
+To do so, you can define a `VersionMap` on a [lazy_static](https://crates.io/crates/lazy_static) variable
+and use it for the deserialization.
+
+See example `versioned_groups`.
