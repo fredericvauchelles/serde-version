@@ -116,7 +116,7 @@
 //! #   a: u8
 //! # }
 //! # #[derive(Deserialize, DeserializeVersioned, PartialEq, Debug)]
-//! # #[versions(v(index = 1, type = "Av1"), v(index = 2, type = "A"))]
+//! # #[versions(v(index = 1, type = "Av1"), v(index = 2, self))]
 //! # struct A {
 //! #   b: u8
 //! # }
@@ -140,10 +140,10 @@
 //!
 //!   // First get a header
 //!   // Here, we use the version 1 of `A`
-//!   let versions: serde_version::DefaultVersionMap = ron::de::from_str(r#"{ "A": 1 }"#).unwrap();
+//!   // Note: `rust_out` is the module used for the doc script
+//!   let versions: serde_version::DefaultVersionMap = ron::de::from_str(r#"{ "rust_out::A": 1 }"#).unwrap();
 //!   
 //!   // Let's deserialize some values
-//!   
 //!   // Deserialize directly A
 //!   let mut deserializer = ron::de::Deserializer::from_str(r#"A(a: 1)"#).unwrap();
 //!   let value = A::deserialize_versioned(&mut deserializer, &versions).unwrap();
@@ -180,6 +180,7 @@ pub use serde_version_derive::*;
 extern crate failure;
 
 mod deserializer;
+pub mod exports;
 mod seed;
 mod visitor;
 

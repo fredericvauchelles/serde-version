@@ -41,7 +41,7 @@ struct Av2 {
 #[versions(
     v(index = 1, type = "Av1"),
     v(index = 3, type = "Av2"),
-    v(index = 4, type = "A")
+    v(index = 4, self)
 )]
 struct A {
     c: u8,
@@ -75,7 +75,7 @@ struct Bv2 {
 #[versions(
     v(index = 1, type = "Bv1"),
     v(index = 2, type = "Bv2"),
-    v(index = 3, type = "B")
+    v(index = 3, self)
 )]
 struct B {
     cc: u8,

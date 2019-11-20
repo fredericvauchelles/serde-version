@@ -1,7 +1,7 @@
+use ast::attr::PathOrSelf;
 use ast::Container;
 use proc_macro2::{Span, TokenStream};
 use proc_macro_util::prelude::*;
-use syn::export::ToTokens;
 
 pub fn expand_derive_deserialize_versioned(
     input: &syn::DeriveInput,
@@ -37,14 +37,17 @@ pub fn expand_derive_deserialize_versioned(
                     .extend(cont_where_clause.predicates.iter().cloned())
             }
 
-            // TODO: Find the deserialization name from the serde attribute
-            //   (like `#[serde(rename(deserialize = "deser_name"))]`
-            let ident_string = ident.to_string();
-            let deser_name = syn::LitStr::new(&ident_string, ident.span());
+            let deser_name = quote! { _serde_version::exports::get_type_name::<Self>() };
 
             let last_version = *versions
                 .iter()
-                .find(|(_, v)| &v.path.to_token_stream().to_string() == &ident_string)
+                .find(|(_, v)| {
+                    if let PathOrSelf::SelfType = &v.path {
+                        true
+                    } else {
+                        false
+                    }
+                })
                 // The self type is always described in the version attribute
                 // This is enforced when building the Container
                 .unwrap()
@@ -53,7 +56,10 @@ pub fn expand_derive_deserialize_versioned(
             let deserialize_arms = versions.iter()
                 .filter_map(|(version_number, version)| {
                     if version_number != &last_version {
-                        let path = &version.path;
+                        let path = match &version.path {
+                            PathOrSelf::Path(path) => path,
+                            _ => unreachable!("Because version_number != &last_version"),
+                        };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
                                 <#path as _serde_version::DeserializeVersioned<'_, __VM>>::deserialize_versioned(__deserializer, __version_map),
@@ -69,7 +75,10 @@ pub fn expand_derive_deserialize_versioned(
             let next_element_arms = versions.iter()
                 .filter_map(|(version_number, version)| {
                     if version_number != &last_version {
-                        let path = &version.path;
+                        let path = match &version.path {
+                            PathOrSelf::Path(path) => path,
+                            _ => unreachable!("Because version_number != &last_version"),
+                        };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
                                 <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_element(__seq_access, __version_map),
@@ -85,7 +94,10 @@ pub fn expand_derive_deserialize_versioned(
             let next_value_arms= versions.iter()
                 .filter_map(|(version_number, version)| {
                     if version_number != &last_version {
-                        let path = &version.path;
+                        let path = match &version.path {
+                            PathOrSelf::Path(path) => path,
+                            _ => unreachable!("Because version_number != &last_version"),
+                        };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
                                 <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_value(__map_access, __version_map),
@@ -102,7 +114,10 @@ pub fn expand_derive_deserialize_versioned(
                 .iter()
                 .map(|(version_number, version)| {
                     if version_number != &last_version {
-                        let path = &version.path;
+                        let path = match &version.path {
+                            PathOrSelf::Path(path) => path,
+                            _ => unreachable!("Because version_number != &last_version"),
+                        };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
                                 <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_key(
@@ -121,7 +136,10 @@ pub fn expand_derive_deserialize_versioned(
                 .iter()
                 .filter_map(|(version_number, version)| {
                     if version_number != &last_version {
-                        let path = &version.path;
+                        let path = match &version.path {
+                            PathOrSelf::Path(path) => path,
+                            _ => unreachable!("Because version_number != &last_version"),
+                        };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
                                 <#path as _serde_version::DeserializeVersioned<'_, __VM>>::variant(

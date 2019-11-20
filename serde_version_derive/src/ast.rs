@@ -11,6 +11,7 @@ pub mod symbols {
 
     pub const DEFAULT: Symbol = Symbol("default");
     pub const INDEX: Symbol = Symbol("index");
+    pub const SELF: Symbol = Symbol("self");
     pub const TYPE: Symbol = Symbol("type");
     pub const VERSIONS: Symbol = Symbol("versions");
     pub const VERSION: Symbol = Symbol("version");
@@ -19,7 +20,7 @@ pub mod symbols {
 
 pub mod attr {
     use super::symbols::{DEFAULT, TYPE, VERSION, VERSIONS};
-    use ast::symbols::{INDEX, VERSION_SHORTHAND};
+    use ast::symbols::{INDEX, SELF, VERSION_SHORTHAND};
     use proc_macro_util::prelude::{Attr, Ctxt};
     use quote::ToTokens;
     use std::collections::HashMap;
@@ -34,14 +35,13 @@ pub mod attr {
         pub fn from_ast(cx: &Ctxt, item: &syn::DeriveInput) -> Self {
             let mut versions = Attr::none(cx, VERSIONS);
 
-            let ident = &item.ident;
             let mut self_version_defined = false;
 
             match item.data {
                 syn::Data::Struct(syn::DataStruct {
                     ref struct_token, ..
                 }) => {
-                    let mut is_valid = true;
+                    let mut error_message = None;
                     let mut parsed_versions = HashMap::new();
 
                     for meta_items in item.attrs.iter().filter_map(get_serde_version_meta_items) {
@@ -53,6 +53,7 @@ pub mod attr {
                                     if list.path == VERSION || list.path == VERSION_SHORTHAND =>
                                 {
                                     let mut path = None;
+                                    let mut is_self = false;
                                     let mut default = false;
                                     let mut index = None;
 
@@ -65,19 +66,11 @@ pub mod attr {
                                                     syn::Lit::Str(ref str) => {
                                                         if let Ok(path2) = str.parse::<syn::Path>()
                                                         {
-                                                            // TODO: there may be a more efficient test here
-                                                            if path2.to_token_stream().to_string()
-                                                                == ident
-                                                                    .to_token_stream()
-                                                                    .to_string()
-                                                            {
-                                                                self_version_defined = true;
-                                                            }
                                                             path = Some(path2);
                                                         }
                                                     }
                                                     _ => {
-                                                        is_valid = false;
+                                                        error_message = Some(format!("'type' expect a string value, received {}", pair.lit.clone().into_token_stream().to_string()));
                                                         break;
                                                     }
                                                 };
@@ -92,7 +85,7 @@ pub mod attr {
                                                         }
                                                     }
                                                     _ => {
-                                                        is_valid = false;
+                                                        error_message = Some(format!("'index' expect an integer value, received {}", pair.lit.clone().into_token_stream().to_string()));
                                                         break;
                                                     }
                                                 };
@@ -100,57 +93,92 @@ pub mod attr {
                                             NestedMeta::Meta(Meta::Path(ref p)) if p == DEFAULT => {
                                                 default = true;
                                             }
-                                            _ => {
-                                                is_valid = false;
+                                            NestedMeta::Meta(Meta::Path(ref p)) if p == SELF => {
+                                                is_self = true;
+                                                self_version_defined = true;
+                                            }
+                                            value => {
+                                                error_message = Some(format!(
+                                                    "unknown attribute {:?}",
+                                                    value.into_token_stream().to_string()
+                                                ));
                                                 break;
                                             }
                                         }
                                     }
-                                    // type path is mandatory
-                                    is_valid &= path.is_some() && index.is_some();
-                                    if !is_valid {
+
+                                    error_message = error_message
+                                        .or_else(|| {
+                                            // type and self are exclusive
+                                            if path.is_some() && is_self {
+                                                Some(
+                                                    "'type' and 'self' can't be defined together."
+                                                        .to_string(),
+                                                )
+                                            }
+                                            // type or self is mandatory
+                                            else if !path.is_some() && !is_self {
+                                                Some(
+                                                    "One of 'type' or 'self' must be defined."
+                                                        .to_string(),
+                                                )
+                                            } else {
+                                                None
+                                            }
+                                        })
+                                        .or_else(|| {
+                                            if index.is_some() {
+                                                None
+                                            } else {
+                                                Some("'index' is required.".to_string())
+                                            }
+                                        });
+
+                                    if error_message.is_some() {
                                         break;
                                     }
 
                                     parsed_versions.insert(
                                         index.unwrap(),
                                         Version {
-                                            path: path.unwrap(),
+                                            path: path
+                                                .map(PathOrSelf::Path)
+                                                .unwrap_or(PathOrSelf::SelfType),
                                             index: index.unwrap(),
                                             is_default: default,
                                         },
                                     );
                                 }
-                                _ => {
-                                    is_valid = false;
+                                ref value => {
+                                    error_message = Some(format!(
+                                        "unknown attribute {:?}",
+                                        value.into_token_stream().to_string()
+                                    ));
                                     break;
                                 }
                             }
                         }
                     }
 
-                    if is_valid && self_version_defined {
-                        versions.set(
-                            &item,
-                            Versions {
-                                versions: parsed_versions,
-                            },
-                        );
-                    } else {
-                        if !self_version_defined {
-                            cx.error_spanned_by(
-                                struct_token,
-                                format!(
-                                    "missing version entry for type {:?}.",
-                                    ident.to_token_stream().to_string()
-                                ),
+                    error_message = error_message.or_else(|| {
+                        if self_version_defined {
+                            versions.set(
+                                &item,
+                                Versions {
+                                    versions: parsed_versions,
+                                },
                             );
+                            None
                         } else {
-                            cx.error_spanned_by(
-                                struct_token,
-                                "malformed versions attribute, expected `versions(v(index = 1, type = \"type1\"), version(index = 2, type = \"type2\", default), ...)`",
-                            );
+                            Some("A version must be defined for 'self'.".to_string())
                         }
+                    });
+
+                    if let Some(error_message) = error_message {
+                        cx.error_spanned_by(
+                            struct_token,
+                            format!("Error while parsing the attribute: {}.", error_message),
+                        );
                     }
                 }
                 syn::Data::Enum(syn::DataEnum { ref enum_token, .. }) => {
@@ -176,11 +204,15 @@ pub mod attr {
         }
     }
 
+    pub enum PathOrSelf {
+        SelfType,
+        Path(syn::Path),
+    }
     pub struct Versions {
         versions: HashMap<usize, Version>,
     }
     pub struct Version {
-        pub path: syn::Path,
+        pub path: PathOrSelf,
         pub index: usize,
         pub is_default: bool,
     }
@@ -207,6 +239,7 @@ impl<'a> Container<'a> {
 
 #[cfg(test)]
 mod tests {
+    use ast::attr::PathOrSelf;
     use ast::Container;
     use proc_macro_util::prelude::Ctxt;
     use quote::ToTokens;
@@ -215,7 +248,7 @@ mod tests {
     #[test]
     fn parse_container() {
         let item: proc_macro2::TokenStream = quote! {
-            #[versions(v(index = 1, type = "Av1"), version(index = 3, type = "namespace::Av2", default), v(index = 4, type = "A"))]
+            #[versions(v(index = 1, type = "Av1"), version(index = 3, type = "namespace::Av2", default), v(index = 4, self))]
             struct A<T> { marker: std::marker::PhantomData<T>, }
         };
 
@@ -239,7 +272,7 @@ mod tests {
             vec![
                 (1, ("Av1".to_owned(), false)),
                 (3, ("namespace :: Av2".to_owned(), true)),
-                (4, ("A".to_owned(), false))
+                (4, ("<self>".to_owned(), false))
             ]
             .into_iter()
             .collect::<HashMap<_, _>>(),
@@ -247,7 +280,16 @@ mod tests {
                 .versions()
                 .unwrap()
                 .iter()
-                .map(|(&i, v)| (i, (v.path.to_token_stream().to_string(), v.is_default)))
+                .map(|(&i, v)| (
+                    i,
+                    (
+                        match &v.path {
+                            PathOrSelf::SelfType => "<self>".to_string(),
+                            PathOrSelf::Path(path) => path.to_token_stream().to_string(),
+                        },
+                        v.is_default
+                    )
+                ))
                 .collect::<HashMap<_, _>>()
         );
     }
