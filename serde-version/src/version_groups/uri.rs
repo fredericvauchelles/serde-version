@@ -133,21 +133,6 @@ mod tests {
     use serde_test::{assert_de_tokens, Token};
 
     macro_rules! declare_tests {
-        (
-            $readable:tt
-            $($name:ident { $($value:expr => $tokens:expr,)+ })+
-        ) => {
-            $(
-                #[test]
-                fn $name() {
-                    $(
-                        // Test ser/de roundtripping
-                        assert_de_tokens(&$value.$readable(), $tokens);
-                    )+
-                }
-            )+
-        };
-
         ($(
             $(#[$cfg:meta])*
             $name:ident { $($value:expr => $tokens:expr,)+ }

@@ -12,13 +12,14 @@ macro_rules! version_group_resolver_static {
     };
 }
 
+#[macro_export]
 macro_rules! __version_group_resolver_static {
     (
         ($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident),
         ($(($api_group:expr, $api_version:expr) => { $($path:path => $version:expr),*, }),*,)
     ) => {
         lazy_static! {
-            $(#[$attr])* $($vis)* static ref $id: DefaultVersionGroupResolver<'static>
+            $(#[$attr])* $($vis)* static ref $id: $crate::DefaultVersionGroupResolver<'static>
                 = version_group_resolver_new! { $(
                     ($api_group, $api_version) => { $($path => $version),*, }
                 ),*, };
@@ -40,6 +41,7 @@ macro_rules! version_map_static {
     };
 }
 
+#[macro_export]
 macro_rules! __version_map_static {
     (($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident), ($($path:path => $version:expr),*,)) => {
         lazy_static! {
@@ -54,12 +56,13 @@ macro_rules! __version_map_static {
 macro_rules! version_group_resolver_new {
     ($(($api_group:expr, $api_version:expr) => { $($path:path => $version:expr),*, }),*,) => {
         {
+            let vec: Vec<((&str, &str), Box<dyn $crate::VersionMap>)> =
             vec![
             $((
-                (stringify!($api_group), stringify!($api_version)),
+                ($api_group, $api_version),
                 Box::new(version_map_new!{ $($path => $version),*, })
-            )),*,]
-                .into_iter()
+            )),*,];
+            vec.into_iter()
                 .collect::<$crate::DefaultVersionGroupResolver<'_>>()
         }
     };
@@ -93,6 +96,7 @@ macro_rules! version_group_enum {
     };
 }
 
+#[macro_export]
 macro_rules! __version_group_enum {
     (($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident), ($($entry:ident as $alias:expr => $uri:expr),*,)) => {
         $(#[$attr])* $($vis)* enum $id {
@@ -112,16 +116,13 @@ macro_rules! __version_group_enum {
 
 #[cfg(test)]
 mod tests {
-    use crate::{VersionGroupURI, VersionGroupURIs};
+    use crate::{DefaultVersionMap, VersionGroupURI};
     use serde::{Deserialize, Serialize};
+    use std::collections::HashMap;
     use std::convert::TryFrom;
 
     struct A;
-    struct Av1;
-    struct Av2;
     struct B;
-    struct Bv1;
-    struct Bv2;
 
     #[test]
     fn version_map_new_works() {
@@ -131,12 +132,13 @@ mod tests {
         };
 
         assert_eq!(
-            Some(&1),
-            version_map.get("serde_version::version_groups::macros::tests::A")
-        );
-        assert_eq!(
-            Some(&2),
-            version_map.get("serde_version::version_groups::macros::tests::B")
+            vec![
+                ("serde_version::version_groups::macros::tests::A", 1),
+                ("serde_version::version_groups::macros::tests::B", 2),
+            ]
+            .into_iter()
+            .collect::<HashMap<_, _>>(),
+            version_map
         );
     }
 
@@ -147,12 +149,13 @@ mod tests {
     #[test]
     fn version_map_static_works() {
         assert_eq!(
-            Some(&2),
-            TEST_1.get("serde_version::version_groups::macros::tests::A")
-        );
-        assert_eq!(
-            Some(&3),
-            TEST_1.get("serde_version::version_groups::macros::tests::B")
+            &vec![
+                ("serde_version::version_groups::macros::tests::A", 2),
+                ("serde_version::version_groups::macros::tests::B", 3),
+            ]
+            .into_iter()
+            .collect::<HashMap<_, _>>(),
+            &*TEST_1
         );
     }
 
@@ -179,7 +182,29 @@ mod tests {
     #[test]
     fn version_group_resolver_new_works() {
         let resolver = version_group_resolver_new! {
-            ( my.api_group, 1.0.0 ) => { A => 1, B => 2, },
+            ( "my.api_group", "1.0.0" ) => { A => 1, B => 2, },
         };
+
+        assert_eq!(
+            resolver
+                .into_iter()
+                .map(|(k, v)| (k, unsafe {
+                    Box::from_raw(Box::into_raw(v) as *mut DefaultVersionMap)
+                }))
+                .collect::<HashMap<_, _>>(),
+            {
+                let vec = vec![(
+                    ("my.api_group", "1.0.0"),
+                    Box::new(version_map_new! { A => 1, B => 2, }),
+                )];
+                vec.into_iter().collect::<HashMap<_, _>>()
+            }
+        );
+    }
+
+    version_group_resolver_static! {
+        VERSIONS = {
+            ( "my.api_group", "1.0.0" ) => { A => 2, B => 3, },
+        }
     }
 }

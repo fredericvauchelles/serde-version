@@ -10,10 +10,8 @@ extern crate serde;
 #[macro_use]
 extern crate serde_version_derive;
 
-pub mod common;
-
 use serde::Deserialize;
-use serde_version::DefaultVersionMap;
+use serde_version::{DefaultVersionMap, DeserializeVersioned, VersionMap, VersionedDeserializer};
 use std::fmt::Debug;
 
 #[derive(Deserialize)]
@@ -55,12 +53,21 @@ struct ContainsA {
     a: A,
 }
 
-fn main() {
-    use common::deserialize_test;
+fn deserialize_test<'de, T: DeserializeVersioned<'de> + PartialEq + Debug>(
+    input: &'de str,
+    v: T,
+    version_map: &'de dyn VersionMap,
+) {
+    let mut ron_deserializer = ron::de::Deserializer::from_str(input).unwrap();
+    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
+    let de = T::deserialize_versioned(deserializer, version_map).unwrap();
 
+    assert_eq!(v, de);
+}
+
+fn main() {
     let mut version_map = DefaultVersionMap::new();
-    let a = "A".to_string();
-    version_map.insert(a.clone(), 1);
+    version_map.insert("A", 1);
 
     deserialize_test("A(a: 8)", A { c: 8 }, &version_map);
     deserialize_test(
@@ -69,7 +76,7 @@ fn main() {
         &version_map,
     );
 
-    *version_map.get_mut(&a).unwrap() = 3;
+    *version_map.get_mut("A").unwrap() = 3;
     deserialize_test("A(b: 8)", A { c: 8 }, &version_map);
     deserialize_test(
         "ContainsA(a: A(b: 8))",
@@ -77,7 +84,7 @@ fn main() {
         &version_map,
     );
 
-    *version_map.get_mut(&a).unwrap() = 4;
+    *version_map.get_mut("A").unwrap() = 4;
     deserialize_test("A(c: 8))", A { c: 8 }, &version_map);
     deserialize_test(
         "ContainsA(a: A(c: 8))",

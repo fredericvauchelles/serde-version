@@ -18,9 +18,6 @@ pub fn expand_derive_deserialize_versioned(
                     syn::Lifetime::new("'de", Span::call_site()),
                 )))
                 .into_iter()
-                .chain(Some(syn::GenericParam::Type(
-                    syn::parse2::<syn::TypeParam>(quote! { __VM }).unwrap(),
-                )))
                 .chain(generics.params)
                 .collect();
                 generics
@@ -28,14 +25,7 @@ pub fn expand_derive_deserialize_versioned(
             let ident = &cont.ident;
             let ty_generics = cont.generics;
 
-            let mut where_clause =
-                syn::parse2::<syn::WhereClause>(quote! { where __VM: _serde_version::VersionMap })
-                    .unwrap();
-            if let Some(cont_where_clause) = cont.generics.where_clause.as_ref() {
-                where_clause
-                    .predicates
-                    .extend(cont_where_clause.predicates.iter().cloned())
-            }
+            let where_clause = cont.generics.where_clause.as_ref();
 
             let deser_name = quote! { _serde_version::exports::get_type_name::<Self>() };
 
@@ -62,7 +52,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::deserialize_versioned(__deserializer, __version_map),
+                                <#path as _serde_version::DeserializeVersioned<'_>>::deserialize_versioned(__deserializer, __version_map),
                                 _serde::export::Into::into
                             ),
                         })
@@ -81,7 +71,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_element(__seq_access, __version_map),
+                                <#path as _serde_version::DeserializeVersioned<'_>>::next_element(__seq_access, __version_map),
                                 |v| _serde::export::Option::map(v, _serde::export::Into::into)
                             ),
                         })
@@ -100,7 +90,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_value(__map_access, __version_map),
+                                <#path as _serde_version::DeserializeVersioned<'_>>::next_value(__map_access, __version_map),
                                 _serde::export::Into::into
                             ),
                         })
@@ -120,7 +110,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::next_key(
+                                <#path as _serde_version::DeserializeVersioned<'_>>::next_key(
                                     __map_access,
                                     __version_map
                                 ),
@@ -142,7 +132,7 @@ pub fn expand_derive_deserialize_versioned(
                         };
                         Some(quote! {
                             Some(#version_number) => _serde::export::Result::map(
-                                <#path as _serde_version::DeserializeVersioned<'_, __VM>>::variant(
+                                <#path as _serde_version::DeserializeVersioned<'_>>::variant(
                                     __enum_access,
                                     __version_map
                                 ),
@@ -156,10 +146,10 @@ pub fn expand_derive_deserialize_versioned(
                 .collect::<Vec<_>>();
 
             let code = quote! {
-                impl #de_impl_generics _serde_version::DeserializeVersioned<'de, __VM> for #ident #ty_generics #where_clause {
+                impl #de_impl_generics _serde_version::DeserializeVersioned<'de> for #ident #ty_generics #where_clause {
                     fn deserialize_versioned<__D>(
                         __deserializer: __D,
-                        __version_map: &'de __VM
+                        __version_map: &'de _serde_version::VersionMap,
                     ) -> _serde::export::Result<Self, _serde_version::Error<__D::Error>>
                     where
                         __D: _serde::Deserializer<'de>, {
@@ -179,7 +169,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn next_element<__S>(
                         __seq_access: &mut __S,
-                        __version_map: &'de __VM,
+                        __version_map: &'de _serde_version::VersionMap,
                     ) -> _serde::export::Result<Option<Self>, _serde_version::Error<__S::Error>>
                     where
                         __S: _serde::de::SeqAccess<'de>
@@ -202,7 +192,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn next_value<__M>(
                         __map_access: &mut __M,
-                        __version_map: &'de __VM
+                        __version_map: &'de _serde_version::VersionMap,
                     ) -> _serde::export::Result<Self, _serde_version::Error<__M::Error>>
                     where
                         __M: _serde::de::MapAccess<'de>,
@@ -225,7 +215,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn next_key<__M>(
                         __map_access: &mut __M,
-                        __version_map: &'de __VM,
+                        __version_map: &'de _serde_version::VersionMap,
                     ) -> _serde::export::Result<Option<Self>, _serde_version::Error<__M::Error>>
                     where
                         __M: _serde::de::MapAccess<'de>,
@@ -248,7 +238,7 @@ pub fn expand_derive_deserialize_versioned(
                     #[inline]
                     fn variant<__E>(
                         __enum_access: __E,
-                        __version_map: &'de __VM,
+                        __version_map: &'de _serde_version::VersionMap,
                     ) -> _serde::export::Result<(Self, __E::Variant), _serde_version::Error<__E::Error>>
                     where
                         __E: _serde::de::EnumAccess<'de>,

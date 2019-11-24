@@ -27,6 +27,7 @@ lazy_static = "1.4.0"
 [dev-dependencies]
 serde_version_derive = { version = "0.3.1", path = "../serde_version_derive" }
 serde = { version = "^1.0.0", features = ["derive"] }
+ron = "^0.5.0"
 serde_test = "^1.0.0"
 quickcheck = "0.8"
 quickcheck_macros = "0.8"

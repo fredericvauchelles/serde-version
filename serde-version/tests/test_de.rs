@@ -3,11 +3,15 @@
 #[macro_use]
 extern crate serde_version_derive;
 
+#[macro_use]
+mod common;
+
 use serde::Deserialize;
+use serde_test::Token;
 use serde_version::{
-    DefaultVersionMap, DeserializeVersioned, Error, InvalidVersionError, VersionMap,
-    VersionedDeserializer,
+    DefaultVersionMap, DeserializeVersioned, InvalidVersionError, VersionedDeserializer,
 };
+use std::fmt::Debug;
 
 #[derive(Deserialize)]
 #[serde(rename(deserialize = "A"))]
@@ -54,84 +58,101 @@ struct ContainsA {
     a: A,
 }
 
-#[test]
-fn use_serde_test() {
-    assert!(false)
-}
-
-/*
-fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug, VM: VersionMap>(
-    value: T,
-    from: &str,
-    version_map: &VM,
-) {
-    let mut ron_deserializer = ron::de::Deserializer::from_str(from).unwrap();
-    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
-    let de =
-        <T as DeserializeVersioned<VM>>::deserialize_versioned(deserializer, version_map).unwrap();
-    assert_eq!(value, de);
-}
-
-macro_rules! declare_tests_versions {
-    (
-        fail $name:ident ($($version_ty:expr => $version_num:expr),*) { $($ser:expr => $ty:ty: $value:expr,)+ }
-        $($tt:tt)*
-    ) => {
-            #[test]
-            fn $name() {
-                let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
-                    .into_iter().collect::<DefaultVersionMap>();
-
-                $(
-                    let mut ron_deserializer = ron::de::Deserializer::from_str($ser).unwrap();
-                    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, &version_map);
-                    let de = <$ty as DeserializeVersioned>::deserialize_versioned(deserializer, &version_map).unwrap_err();
-                    assert_eq!($value, de);
-                )+
-            }
-
-            declare_tests_versions! { $($tt)* }
-    };
-    (
-        $name:ident ($($version_ty:expr => $version_num:expr),*) { $($ser:expr => $value:expr,)+ }
-        $($tt:tt)*
-    ) => {
-            #[test]
-            fn $name() {
-                let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
-                    .into_iter().collect::<DefaultVersionMap>();
-                $(
-                    execute_test($value, $ser, &version_map);
-                )+
-            }
-
-            declare_tests_versions! { $($tt)* }
-    };
-    () => { }
-}
-
 declare_tests_versions! {
     test_version ("test_de::A" => 1) {
-        "A(a: 8)" => A { c: 8 },
-        "ContainsA(a: A(a: 4))" => ContainsA { a: A { c: 4 }},
+        A: A { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsA: ContainsA { a: A { c: 4 }} => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("a"),
+                    Token::I32(4),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
     }
     test_current_version ("test_de::A" => 4) {
-        "A(c: 8)" => A { c: 8 },
-        "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
+        A: A { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("c"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsA: ContainsA { a: A { c: 4 }} => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("c"),
+                    Token::I32(4),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
     }
     test_no_version () {
-        "A(c: 8)" => A { c: 8 },
-        "ContainsA(a: A(c: 4))" => ContainsA { a: A { c: 4 }},
+        A: A { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("c"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsA: ContainsA { a: A { c: 4 }} => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("c"),
+                    Token::I32(4),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
     }
     test_default_version ("test_de::A" => 3) {
-        "A(b: 8)" => A { c: 8 },
-        "ContainsA(a: A(b: 4))" => ContainsA { a: A { c: 4 }},
-        "A()" => A { c: 5 },
-        "ContainsA(a: A())" => ContainsA { a: A { c: 5 }},
+        A: A { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("b"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsA: ContainsA { a: A { c: 4 }} => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("b"),
+                    Token::I32(4),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
+        A: A { c: 5 }  => &[
+            Token::Map { len: Some(0) },
+            Token::MapEnd,
+        ],
+        ContainsA: ContainsA { a: A { c: 5 }} => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::Map { len: Some(0) },
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
     }
     fail test_unknown_version ("test_de::A" => 5) {
-        "A(b: 8)" => A: Error::InvalidVersionError(InvalidVersionError { version: 5, type_id: "test_de::A".to_owned() }),
-        "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 5 for test_de::A"))),
+        A: InvalidVersionError { version: 5, type_id: "test_de::A".to_owned() } => &[
+            Token::Map { len: Some(1) },
+                Token::Str("b"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsA: InvalidVersionError { version: 5, type_id: "test_de::A".to_owned() } => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("b"),
+                    Token::I32(4),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
     }
 }
-*/
