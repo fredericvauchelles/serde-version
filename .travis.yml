@@ -26,11 +26,14 @@ jobs:
       script:
         - cargo install mdbook
         - cd manual && mdbook build
+      before_deploy:
+        - mkdir -p target/manual/crates/serde-version
+        - cp -R manual/book/* target/manual/crates/serde-version
       deploy:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_PAGES_TOKEN
-        local_dir: crates/serde-version
+        local_dir: target/manual
         keep_history: true
         on:
           #tags: true
