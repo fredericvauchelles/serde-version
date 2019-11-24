@@ -3,7 +3,7 @@ use super::Error;
 use failure::_core::borrow::Borrow;
 use serde::Deserializer;
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{BuildHasher, Hash};
 
 /// Maps the version number for each deserialization type name
 pub trait VersionMap: Sync {
@@ -90,19 +90,25 @@ impl<'de, D: Deserializer<'de>> Deserializer<'de> for VersionedDeserializer<'de,
     forward_deserialize!(deserialize_ignored_any);
 }
 
-impl<T: Borrow<str> + Hash + Eq + Sync + 'static> VersionMap for HashMap<T, usize> {
+impl<T: Borrow<str> + Hash + Eq + Sync + 'static, S: BuildHasher + Sync> VersionMap
+    for HashMap<T, usize, S>
+{
     fn get(&self, type_id: &str) -> Option<usize> {
         std::collections::HashMap::get(self, type_id).cloned()
     }
 }
 
-impl<'a, T: Borrow<str> + Hash + Eq + Sync> VersionMap for &'a HashMap<T, usize> {
+impl<'a, T: Borrow<str> + Hash + Eq + Sync, S: BuildHasher + Sync> VersionMap
+    for &'a HashMap<T, usize, S>
+{
     fn get(&self, type_id: &str) -> Option<usize> {
         std::collections::HashMap::get(self, type_id).cloned()
     }
 }
 
-impl<'a, T: Borrow<str> + Hash + Eq + Sync> VersionMap for &'a mut HashMap<T, usize> {
+impl<'a, T: Borrow<str> + Hash + Eq + Sync, S: BuildHasher + Sync> VersionMap
+    for &'a mut HashMap<T, usize, S>
+{
     fn get(&self, type_id: &str) -> Option<usize> {
         std::collections::HashMap::get(self, type_id).cloned()
     }

@@ -107,7 +107,6 @@
 //! # extern crate serde_version_derive;
 //! #
 //! # use serde::Deserialize;
-//! # use serde_version::DeserializeVersioned;
 //! # use std::fmt::Debug;
 //! #
 //! # #[derive(Deserialize)]
@@ -133,15 +132,15 @@
 //!   a: A,
 //! }
 //!
-//! fn main() {
-//!   // Use ron as data format for this example
-//!   use ron;
-//!   use serde_version::DeserializeVersioned;
+//! // Use ron as data format for this example
+//! use ron;
+//! use serde_version::DeserializeVersioned;
 //!
+//! fn main() {
 //!   // First get a header
 //!   // Here, we use the version 1 of `A`
 //!   // Note: `rust_out` is the module used for the doc script
-//!   let versions: serde_version::DefaultVersionMap = ron::de::from_str(r#"{ "rust_out::A": 1 }"#).unwrap();
+//!   let versions: std::collections::HashMap<String, usize> = ron::de::from_str(r#"{ "rust_out::A": 1 }"#).unwrap();
 //!   
 //!   // Let's deserialize some values
 //!   // Deserialize directly A
@@ -161,7 +160,67 @@
 //!
 //! Under the hood, `deserialize_version` wraps the provided deserializer with
 //! the `VersionedDeserializer` to support the versioning.
+//!
+//! ## Versioned groups
+//!
+//! A version group is a set of types with their associated version.
+//! It is often easier to use a version number for multiple types together.
+//!
+//! You can refer to a version group by a `VersionGroupURI`, this is an identifier used to select
+//! the appropriate `VersionMap` to use.
+//!
+//! The `VersionGroupResolver` trait is then used to get the `VersionMap` associated to a `VersionGroupURI`.
+//!
+//! You can easily create version group resolver, uris and maps with the provided macros.
+//!
+//! Example:
+//! ```compile_fail
+//! version_group_resolver_static! {
+//!     pub VERSIONS = {
+//!         ("version_group.example" , "1.0.0") => { A => 1, B => 1, },
+//!         ("version_group.example" , "1.1.0") => { A => 3, B => 1, },
+//!         ("version_group.example" , "1.2.0") => { A => 4, B => 2, },
+//!     }
+//! }
+//!
+//! // Define an enum to have an easy way to get the version uris
+//! version_group_enum! {
+//!     #[derive(Deserialize)]
+//!     enum Versions {
+//!         V1 as "v1" => "version_group.example:1.0.0",
+//!         V2 as "v2" => "version_group.example:1.1.0",
+//!         V3 as "v3" => "version_group.example:1.2.0",
+//!     }
+//! }
+//!
+//! use common::deserialize_test;
+//!
+//! // V1
+//! deserialize_test(
+//!     "A(a: 8)",
+//!     A { c: 8 },
+//!     VERSIONS.resolve(Versions::V1.into()).unwrap(),
+//! );
+//! deserialize_test(
+//!     "B(a: 8)",
+//!     B { c: 8 },
+//!     VERSIONS.resolve(Versions::V1.into()).unwrap(),
+//! );
+//! deserialize_test(
+//!     "ContainsBoth(a: A(a: 9), b: B(a: 10))",
+//!     ContainsBoth {
+//!         a: A { c: 9 },
+//!         b: B { c: 8 },
+//!     },
+//!     VERSIONS.resolve(Versions::V1.into()).unwrap(),
+//! );
+//! ```
+//!
+//! Use the example `versioned_groups` to see it in action.
 
+// Some doc test needs external crates
+// In that case, we need the main function
+#![allow(clippy::needless_doctest_main)]
 #![feature(specialization)]
 
 // Re-export #[derive(Serialize, Deserialize)].
