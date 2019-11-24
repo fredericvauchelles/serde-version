@@ -6,13 +6,13 @@ use serde::de::{DeserializeSeed, EnumAccess, MapAccess, SeqAccess, VariantAccess
 use serde::{Deserialize, Deserializer};
 
 /// Wrap a visitor to wrap seed or call specialized methods
-pub struct VersionedVisitor<'v, V, VM> {
+pub struct VersionedVisitor<'v, V> {
     visitor: V,
-    version_map: &'v VM,
+    version_map: &'v dyn VersionMap,
 }
 
-impl<'v, V, VM> VersionedVisitor<'v, V, VM> {
-    pub fn new(visitor: V, version_map: &'v VM) -> Self {
+impl<'v, V> VersionedVisitor<'v, V> {
+    pub fn new(visitor: V, version_map: &'v dyn VersionMap) -> Self {
         Self {
             visitor,
             version_map,
@@ -31,10 +31,9 @@ macro_rules! forward_visit {
         }
     }
 
-impl<'de, V, VM> Visitor<'de> for VersionedVisitor<'de, V, VM>
+impl<'de, V> Visitor<'de> for VersionedVisitor<'de, V>
 where
     V: Visitor<'de>,
-    VM: VersionMap,
 {
     type Value = V::Value;
 
@@ -139,10 +138,9 @@ where
     }
 }
 
-impl<'de, V, VM> SeqAccess<'de> for VersionedVisitor<'de, V, VM>
+impl<'de, V> SeqAccess<'de> for VersionedVisitor<'de, V>
 where
     V: SeqAccess<'de>,
-    VM: VersionMap,
 {
     type Error = Error<V::Error>;
 
@@ -165,15 +163,14 @@ where
     where
         T: Deserialize<'de>,
     {
-        <T as DeserializeVersioned<'de, VM>>::next_element(self, self.version_map)
+        <T as DeserializeVersioned<'de>>::next_element(self, self.version_map)
             .map_err(|err| err.reduce())
     }
 }
 
-impl<'de, V, VM> MapAccess<'de> for VersionedVisitor<'de, V, VM>
+impl<'de, V> MapAccess<'de> for VersionedVisitor<'de, V>
 where
     V: MapAccess<'de>,
-    VM: VersionMap,
 {
     type Error = Error<V::Error>;
 
@@ -228,7 +225,7 @@ where
     where
         K: Deserialize<'de>,
     {
-        <K as DeserializeVersioned<'de, VM>>::next_key(self, self.version_map)
+        <K as DeserializeVersioned<'de>>::next_key(self, self.version_map)
             .map_err(|err| err.reduce())
     }
 
@@ -237,7 +234,7 @@ where
     where
         V2: Deserialize<'de>,
     {
-        <V2 as DeserializeVersioned<'de, VM>>::next_value(self, self.version_map)
+        <V2 as DeserializeVersioned<'de>>::next_value(self, self.version_map)
             .map_err(|err| err.reduce())
     }
 
@@ -246,20 +243,19 @@ where
     }
 }
 
-impl<'de, V, VM> EnumAccess<'de> for VersionedVisitor<'de, V, VM>
+impl<'de, V> EnumAccess<'de> for VersionedVisitor<'de, V>
 where
     V: EnumAccess<'de>,
-    VM: VersionMap,
 {
     type Error = Error<V::Error>;
-    type Variant = VersionedVisitor<'de, V::Variant, VM>;
+    type Variant = VersionedVisitor<'de, V::Variant>;
 
     #[inline]
     #[allow(clippy::type_complexity)]
     fn variant_seed<S>(
         self,
         seed: S,
-    ) -> Result<(S::Value, VersionedVisitor<'de, V::Variant, VM>), Self::Error>
+    ) -> Result<(S::Value, VersionedVisitor<'de, V::Variant>), Self::Error>
     where
         S: DeserializeSeed<'de>,
     {
@@ -282,15 +278,13 @@ where
         V2: Deserialize<'de>,
     {
         let version_map = self.version_map;
-        <V2 as DeserializeVersioned<'de, VM>>::variant(self, version_map)
-            .map_err(|err| err.reduce())
+        <V2 as DeserializeVersioned<'de>>::variant(self, version_map).map_err(|err| err.reduce())
     }
 }
 
-impl<'de, V, VM> VariantAccess<'de> for VersionedVisitor<'de, V, VM>
+impl<'de, V> VariantAccess<'de> for VersionedVisitor<'de, V>
 where
     V: VariantAccess<'de>,
-    VM: VersionMap,
 {
     type Error = Error<V::Error>;
 

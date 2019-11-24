@@ -59,8 +59,7 @@ fn main() {
     use common::deserialize_test;
 
     let mut version_map = DefaultVersionMap::new();
-    let a = "A".to_string();
-    version_map.insert(a.clone(), 1);
+    version_map.insert("A", 1);
 
     deserialize_test("A(a: 8)", A { c: 8 }, &version_map);
     deserialize_test(
@@ -69,7 +68,7 @@ fn main() {
         &version_map,
     );
 
-    *version_map.get_mut(&a).unwrap() = 3;
+    *version_map.get_mut("A").unwrap() = 3;
     deserialize_test("A(b: 8)", A { c: 8 }, &version_map);
     deserialize_test(
         "ContainsA(a: A(b: 8))",
@@ -77,7 +76,7 @@ fn main() {
         &version_map,
     );
 
-    *version_map.get_mut(&a).unwrap() = 4;
+    *version_map.get_mut("A").unwrap() = 4;
     deserialize_test("A(c: 8))", A { c: 8 }, &version_map);
     deserialize_test(
         "ContainsA(a: A(c: 8))",

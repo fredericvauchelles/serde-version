@@ -5,21 +5,20 @@ use serde::Deserializer;
 /// Seed wrapper:
 ///
 /// Wrap calls to deserialize with a VersionedDeserializer
-pub struct VersionedSeed<'v, S, VM> {
+pub struct VersionedSeed<'v, S> {
     seed: S,
-    version_map: &'v VM,
+    version_map: &'v dyn VersionMap,
 }
 
-impl<'v, S, VM> VersionedSeed<'v, S, VM> {
-    pub fn new(seed: S, version_map: &'v VM) -> Self {
+impl<'v, S> VersionedSeed<'v, S> {
+    pub fn new(seed: S, version_map: &'v dyn VersionMap) -> Self {
         Self { seed, version_map }
     }
 }
 
-impl<'de, 'v, S, VM> DeserializeSeed<'de> for VersionedSeed<'de, S, VM>
+impl<'de, 'v, S> DeserializeSeed<'de> for VersionedSeed<'de, S>
 where
     S: DeserializeSeed<'de>,
-    VM: VersionMap,
 {
     type Value = S::Value;
 

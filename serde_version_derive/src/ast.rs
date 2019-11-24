@@ -117,7 +117,7 @@ pub mod attr {
                                                 )
                                             }
                                             // type or self is mandatory
-                                            else if !path.is_some() && !is_self {
+                                            else if path.is_none() && !is_self {
                                                 Some(
                                                     "One of 'type' or 'self' must be defined."
                                                         .to_string(),

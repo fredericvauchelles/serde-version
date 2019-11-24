@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0]
+### Added
+* Version group apis: macros and utilities to defined version maps, version groups and version uris.
+
+### Changed
+* The `VersionMap` is now used as a `&dyn VersionMap` and not a generic parameter in types.
+
 ## [0.3.1]
 ### Changed
 * To define the version for the current type, use `self` attribute instead of `type = "path to self"`
@@ -39,7 +46,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Versioning feature for serde with additional trait `DeserializeVersioned` and deserializer `VersionedDeserialized`
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/0.3.1...HEAD
+[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/fredpointzero/serde-version/releases/tag/0.4.0
 [0.3.1]: https://github.com/fredpointzero/serde-version/releases/tag/0.3.1
 [0.3.0]: https://github.com/fredpointzero/serde-version/releases/tag/0.3.0
 [0.2.3]: https://github.com/fredpointzero/serde-version/releases/tag/0.2.3
