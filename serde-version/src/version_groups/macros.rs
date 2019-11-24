@@ -111,6 +111,23 @@ macro_rules! __version_group_enum {
                 ),*,}
             }
         }
+
+        impl ::std::convert::From<$id> for &'static $crate::VersionGroupURI<'static> {
+            fn from(v: $id) -> Self {
+                use ::std::convert::TryInto;
+
+                $(
+                    lazy_static! {
+                        static ref $entry: $crate::VersionGroupURI<'static> =
+                            $uri.try_into().unwrap();
+                    }
+                )*
+
+                match v {$(
+                    $id::$entry => &*$entry
+                ),*,}
+            }
+        }
     };
 }
 

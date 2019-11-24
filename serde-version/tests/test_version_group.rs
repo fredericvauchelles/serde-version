@@ -77,7 +77,7 @@ impl Default for Bv2 {
 #[serde(rename(deserialize = "B"))]
 #[versions(
     v(index = 1, type = "Bv1"),
-    version(index = 3, type = "Bv2", default),
+    version(index = 2, type = "Bv2", default),
     v(index = 4, self)
 )]
 struct B {
@@ -104,8 +104,8 @@ struct ContainsBoth {
 version_group_resolver_static! {
     pub VERSIONS = {
         ("serde_version.test" , "1.0.0") => { A => 1, B => 1, },
-        ("serde_version.test" , "1.1.0") => { A => 2, B => 1, },
-        ("serde_version.test" , "1.2.0") => { A => 3, B => 3, },
+        ("serde_version.test" , "1.1.0") => { A => 3, B => 1, },
+        ("serde_version.test" , "1.2.0") => { A => 4, B => 2, },
     }
 }
 
@@ -119,11 +119,90 @@ version_group_enum! {
 }
 
 declare_tests_versions! {
-    test_version (VERSIONS.resolve(&Versions::V1.into()).unwrap()) {
+    test_version_1 (VERSIONS.resolve(Versions::V1.into()).unwrap()) {
         A: A { c: 8 }  => &[
             Token::Map { len: Some(1) },
                 Token::Str("a"),
                 Token::I32(8),
+            Token::MapEnd,
+        ],
+        B: B { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsBoth: ContainsBoth { a: A { c: 4 }, b: B { c: 6 } } => &[
+            Token::Map { len: Some(2) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("a"),
+                    Token::I32(4),
+                Token::MapEnd,
+
+                Token::Str("b"),
+                Token::Map { len: Some(1) },
+                    Token::Str("a"),
+                    Token::I32(6),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
+    }
+    test_version_2 (VERSIONS.resolve(Versions::V2.into()).unwrap()) {
+        A: A { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("b"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        B: B { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("a"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsBoth: ContainsBoth { a: A { c: 4 }, b: B { c: 6 } } => &[
+            Token::Map { len: Some(2) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("b"),
+                    Token::I32(4),
+                Token::MapEnd,
+
+                Token::Str("b"),
+                Token::Map { len: Some(1) },
+                    Token::Str("a"),
+                    Token::I32(6),
+                Token::MapEnd,
+            Token::MapEnd,
+        ],
+    }
+    test_version_3 (VERSIONS.resolve(Versions::V3.into()).unwrap()) {
+        A: A { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("c"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        B: B { c: 8 }  => &[
+            Token::Map { len: Some(1) },
+                Token::Str("b"),
+                Token::I32(8),
+            Token::MapEnd,
+        ],
+        ContainsBoth: ContainsBoth { a: A { c: 4 }, b: B { c: 6 } } => &[
+            Token::Map { len: Some(2) },
+                Token::Str("a"),
+                Token::Map { len: Some(1) },
+                    Token::Str("c"),
+                    Token::I32(4),
+                Token::MapEnd,
+
+                Token::Str("b"),
+                Token::Map { len: Some(1) },
+                    Token::Str("b"),
+                    Token::I32(6),
+                Token::MapEnd,
             Token::MapEnd,
         ],
     }
