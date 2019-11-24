@@ -3,32 +3,32 @@ use super::Error;
 use failure::_core::borrow::Borrow;
 use serde::Deserializer;
 use std::collections::HashMap;
-use std::hash::Hash;
+use std::hash::{BuildHasher, Hash};
 
 /// Maps the version number for each deserialization type name
-pub trait VersionMap {
+pub trait VersionMap: Sync {
     fn get(&self, type_id: &str) -> Option<usize>;
 }
-pub type DefaultVersionMap = HashMap<String, usize>;
+pub type DefaultVersionMap<'a> = HashMap<&'a str, usize>;
 
 /// A wrapper around a deserialize to support the deserialization.
 ///
 /// This deserializer will wrap all calls where specialization is required. (Like
 /// `next_element`, `next_value`, ...)
-pub struct VersionedDeserializer<'de, D, VM>
+pub struct VersionedDeserializer<'de, D>
 where
     D: Deserializer<'de>,
 {
     deserializer: D,
-    version_map: &'de VM,
+    version_map: &'de dyn VersionMap,
     marker: std::marker::PhantomData<&'de usize>,
 }
 
-impl<'de, D, VM> VersionedDeserializer<'de, D, VM>
+impl<'de, D> VersionedDeserializer<'de, D>
 where
     D: Deserializer<'de>,
 {
-    pub fn new(deserializer: D, version_map: &'de VM) -> Self {
+    pub fn new(deserializer: D, version_map: &'de dyn VersionMap) -> Self {
         Self {
             deserializer,
             version_map,
@@ -52,9 +52,7 @@ macro_rules! forward_deserialize {
     }
 }
 
-impl<'de, D: Deserializer<'de>, VM: VersionMap> Deserializer<'de>
-    for VersionedDeserializer<'de, D, VM>
-{
+impl<'de, D: Deserializer<'de>> Deserializer<'de> for VersionedDeserializer<'de, D> {
     type Error = Error<D::Error>;
 
     forward_deserialize!(deserialize_any);
@@ -92,19 +90,25 @@ impl<'de, D: Deserializer<'de>, VM: VersionMap> Deserializer<'de>
     forward_deserialize!(deserialize_ignored_any);
 }
 
-impl<T: Borrow<str> + Hash + Eq> VersionMap for HashMap<T, usize> {
+impl<T: Borrow<str> + Hash + Eq + Sync + 'static, S: BuildHasher + Sync> VersionMap
+    for HashMap<T, usize, S>
+{
     fn get(&self, type_id: &str) -> Option<usize> {
         std::collections::HashMap::get(self, type_id).cloned()
     }
 }
 
-impl<'a, T: Borrow<str> + Hash + Eq> VersionMap for &'a HashMap<T, usize> {
+impl<'a, T: Borrow<str> + Hash + Eq + Sync, S: BuildHasher + Sync> VersionMap
+    for &'a HashMap<T, usize, S>
+{
     fn get(&self, type_id: &str) -> Option<usize> {
         std::collections::HashMap::get(self, type_id).cloned()
     }
 }
 
-impl<'a, T: Borrow<str> + Hash + Eq> VersionMap for &'a mut HashMap<T, usize> {
+impl<'a, T: Borrow<str> + Hash + Eq + Sync, S: BuildHasher + Sync> VersionMap
+    for &'a mut HashMap<T, usize, S>
+{
     fn get(&self, type_id: &str) -> Option<usize> {
         std::collections::HashMap::get(self, type_id).cloned()
     }

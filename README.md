@@ -146,7 +146,56 @@ the `VersionedDeserializer` to support the versioning.
 A version group is a set of types with their associated version.
 It is often easier to use a version number for multiple types together.
 
-To do so, you can define a `VersionMap` on a [lazy_static](https://crates.io/crates/lazy_static) variable
-and use it for the deserialization.
+You can refer to a version group by a `VersionGroupURI`, this is an identifier used to select
+the appropriate `VersionMap` to use.
 
-See example `versioned_groups`.
+The `VersionGroupResolver` trait is then used to get the `VersionMap` associated to a `VersionGroupURI`.
+
+You can easily create version group resolver, uris and maps with the provided macros.
+
+Example:
+```rust
+version_group_resolver_static! {
+    pub VERSIONS = {
+        ("version_group.example" , "1.0.0") => { A => 1, B => 1, },
+        ("version_group.example" , "1.1.0") => { A => 3, B => 1, },
+        ("version_group.example" , "1.2.0") => { A => 4, B => 2, },
+    }
+}
+
+// Define an enum to have an easy way to get the version uris
+version_group_enum! {
+    #[derive(Deserialize)]
+    enum Versions {
+        V1 as "v1" => "version_group.example:1.0.0",
+        V2 as "v2" => "version_group.example:1.1.0",
+        V3 as "v3" => "version_group.example:1.2.0",
+    }
+}
+
+fn main() {
+    use common::deserialize_test;
+
+    // V1
+    deserialize_test(
+        "A(a: 8)",
+        A { c: 8 },
+        VERSIONS.resolve(Versions::V1.into()).unwrap(),
+    );
+    deserialize_test(
+        "B(a: 8)",
+        B { c: 8 },
+        VERSIONS.resolve(Versions::V1.into()).unwrap(),
+    );
+    deserialize_test(
+        "ContainsBoth(a: A(a: 9), b: B(a: 10))",
+        ContainsBoth {
+            a: A { c: 9 },
+            b: B { c: 8 },
+        },
+        VERSIONS.resolve(Versions::V1.into()).unwrap(),
+    );
+}
+```
+
+Use the example `versioned_groups` to see it in action.
