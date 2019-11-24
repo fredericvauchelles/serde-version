@@ -23,12 +23,12 @@ jobs:
           all_branches: true
 
     - name: Build Manual
-      script:
+      install:
         - cargo install mdbook
-        - cd manual && mdbook build
-      before_deploy:
+      before_script:
         - mkdir -p target/manual/crates/serde-version
-        - cp -R manual/book/* target/manual/crates/serde-version
+      script:
+        - mdbook build manual -d target/manual/crates/serde-version
       deploy:
         provider: pages
         skip_cleanup: true
