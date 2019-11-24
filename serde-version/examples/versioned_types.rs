@@ -10,8 +10,10 @@ extern crate serde;
 #[macro_use]
 extern crate serde_version_derive;
 
+pub mod common;
+
 use serde::Deserialize;
-use serde_version::{DefaultVersionMap, DeserializeVersioned, VersionMap, VersionedDeserializer};
+use serde_version::DefaultVersionMap;
 use std::fmt::Debug;
 
 #[derive(Deserialize)]
@@ -53,19 +55,9 @@ struct ContainsA {
     a: A,
 }
 
-fn deserialize_test<'de, T: DeserializeVersioned<'de> + PartialEq + Debug>(
-    input: &'de str,
-    v: T,
-    version_map: &'de dyn VersionMap,
-) {
-    let mut ron_deserializer = ron::de::Deserializer::from_str(input).unwrap();
-    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
-    let de = T::deserialize_versioned(deserializer, version_map).unwrap();
-
-    assert_eq!(v, de);
-}
-
 fn main() {
+    use common::deserialize_test;
+
     let mut version_map = DefaultVersionMap::new();
     version_map.insert("A", 1);
 
