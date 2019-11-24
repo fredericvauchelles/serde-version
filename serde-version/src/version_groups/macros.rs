@@ -60,7 +60,7 @@ macro_rules! version_group_resolver_new {
                 Box::new(version_map_new!{ $($path => $version),*, })
             )),*,]
                 .into_iter()
-                .collect::<DefaultVersionGroupResolver<'static>>()
+                .collect::<$crate::DefaultVersionGroupResolver<'_>>()
         }
     };
 }
@@ -71,7 +71,7 @@ macro_rules! version_map_new {
     ($($path:path => $version:expr),*,) => {
         {
             vec![
-                $(($crate::serde_version::exports::get_type_name::<$path>(), $version)),*,
+                $(($crate::exports::get_type_name::<$path>(), $version)),*,
             ]
             .into_iter()
             .collect::<std::collections::HashMap<_, _>>()
@@ -94,64 +94,92 @@ macro_rules! version_group_enum {
 }
 
 macro_rules! __version_group_enum {
-    (($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident), ($($entry:ident as $alias:expr => ($api_group:expr, $api_version:expr)),*,)) => {
+    (($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident), ($($entry:ident as $alias:expr => $uri:expr),*,)) => {
         $(#[$attr])* $($vis)* enum $id {
-            $(#[serde(alias = $alias)] $entry,),*
+            $(#[serde(alias = $alias)] $entry),*
         }
 
-        impl ::std::convert::From<$id> for $crate::VersionGroupURI<&'static str> {
+        impl ::std::convert::From<$id> for $crate::VersionGroupURI<'static> {
             fn from(v: $id) -> Self {
                 use ::std::convert::TryInto;
-                match $v {$(
-                    $entry => concat!(concat!(stringify!($api_group, ":"), stringify!($api_version))).try_into().unwrap()
-                )*,}
+                match v {$(
+                    $id::$entry => $uri.try_into().unwrap()
+                ),*,}
             }
         }
     };
 }
 
-/// Define version groups
-///
-/// This create and enum and map its keys to a `VersionMap`
-#[macro_export]
-macro_rules! version_groups {
-        ($($api:ident {
-            $($id:ident as $alias:expr => {
-                $($path:path => $version:expr),*,
-            }),*,
-        }),*,) => {
-            $(
-            #[derive(Serialize, Deserialize, Eq, PartialEq, Hash, Debug)]
-            pub enum $api {
-                $(
-                #[serde(alias = $alias)]
-                $id
-                ),*
-            }
+#[cfg(test)]
+mod tests {
+    use crate::{VersionGroupURI, VersionGroupURIs};
+    use serde::{Deserialize, Serialize};
+    use std::convert::TryFrom;
 
-            impl $crate::version_util::VersionMapKey for $api {
-                type VM = std::collections::HashMap<&'static str, usize>;
+    struct A;
+    struct Av1;
+    struct Av2;
+    struct B;
+    struct Bv1;
+    struct Bv2;
 
-                fn to_version_map(&self) -> &Self::VM {
-                    match *self {
-                        $(
-                            ApiVersion::$id => &$id,
-                        )*
-                    }
-                }
-            }
+    #[test]
+    fn version_map_new_works() {
+        let version_map = version_map_new! {
+            A => 1,
+            B => 2,
+        };
 
-            $(
-            lazy_static! {
-                static ref $id: std::collections::HashMap<&'static str, usize> = {
-                    vec![
-                        $(($crate::serde_version::exports::get_type_name::<$path>(), $version)),*,
-                    ]
-                    .into_iter()
-                    .collect::<std::collections::HashMap<_, _>>()
-                };
-            }
-            )*
-            )*
+        assert_eq!(
+            Some(&1),
+            version_map.get("serde_version::version_groups::macros::tests::A")
+        );
+        assert_eq!(
+            Some(&2),
+            version_map.get("serde_version::version_groups::macros::tests::B")
+        );
+    }
+
+    version_map_static! {
+        TEST_1 = { A => 2, B => 3, }
+    }
+
+    #[test]
+    fn version_map_static_works() {
+        assert_eq!(
+            Some(&2),
+            TEST_1.get("serde_version::version_groups::macros::tests::A")
+        );
+        assert_eq!(
+            Some(&3),
+            TEST_1.get("serde_version::version_groups::macros::tests::B")
+        );
+    }
+
+    version_group_enum! {
+        #[derive(Serialize, Deserialize)]
+        enum Versions {
+            V1 as "v1" => "my.api_group:1.0.0",
+            V2 as "v2" => "my.second.api_group:1.2.0",
+        }
+    }
+
+    #[test]
+    fn version_group_enum_works() {
+        assert_eq!(
+            VersionGroupURI::try_from("my.api_group:1.0.0").unwrap(),
+            Versions::V1.into()
+        );
+        assert_eq!(
+            VersionGroupURI::try_from("my.second.api_group:1.2.0").unwrap(),
+            Versions::V2.into()
+        );
+    }
+
+    #[test]
+    fn version_group_resolver_new_works() {
+        let resolver = version_group_resolver_new! {
+            ( my.api_group, 1.0.0 ) => { A => 1, B => 2, },
         };
     }
+}

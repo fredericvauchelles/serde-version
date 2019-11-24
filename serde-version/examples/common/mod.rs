@@ -10,9 +10,11 @@ pub fn deserialize_test<
     v: T,
     version_map: &'de VM,
 ) {
-    let mut ron_deserializer = ron::de::Deserializer::from_str(input).unwrap();
-    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
-    let de = T::deserialize_versioned(deserializer, &version_map).unwrap();
+    assert!(false); // use serde_test
+                    /*
+                    let mut ron_deserializer = ron::de::Deserializer::from_str(input).unwrap();
+                    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
+                    let de = T::deserialize_versioned(deserializer, &version_map).unwrap();
 
-    assert_eq!(v, de);
+                    assert_eq!(v, de);*/
 }

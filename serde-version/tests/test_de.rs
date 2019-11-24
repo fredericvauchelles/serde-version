@@ -54,6 +54,12 @@ struct ContainsA {
     a: A,
 }
 
+#[test]
+fn use_serde_test() {
+    assert!(false)
+}
+
+/*
 fn execute_test<T: for<'de> Deserialize<'de> + PartialEq + std::fmt::Debug, VM: VersionMap>(
     value: T,
     from: &str,
@@ -75,6 +81,7 @@ macro_rules! declare_tests_versions {
             fn $name() {
                 let version_map = vec![$(($version_ty.to_owned(), $version_num),)*]
                     .into_iter().collect::<DefaultVersionMap>();
+
                 $(
                     let mut ron_deserializer = ron::de::Deserializer::from_str($ser).unwrap();
                     let deserializer = VersionedDeserializer::new(&mut ron_deserializer, &version_map);
@@ -127,3 +134,4 @@ declare_tests_versions! {
         "ContainsA(a: A(b: 4))" => ContainsA: Error::DeserializeError(Error::DeserializeError(<ron::de::Error as serde::de::Error>::custom("Invalid version 5 for test_de::A"))),
     }
 }
+*/

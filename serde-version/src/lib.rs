@@ -178,6 +178,8 @@ extern crate serde_version_derive;
 pub use serde_version_derive::*;
 #[macro_use]
 extern crate failure;
+#[macro_use]
+extern crate lazy_static;
 
 #[cfg(test)]
 extern crate quickcheck;
@@ -194,6 +196,9 @@ mod visitor;
 pub use deserializer::{DefaultVersionMap, VersionMap, VersionedDeserializer};
 use serde::de::{EnumAccess, MapAccess, SeqAccess};
 use std::fmt::Display;
+pub use version_groups::{
+    DefaultVersionGroupResolver, VersionGroupResolver, VersionGroupURI, VersionGroupURIs,
+};
 
 /// Error used when a provided version number is not handled by current code
 #[derive(Debug, Hash, PartialEq, Eq, Fail)]
