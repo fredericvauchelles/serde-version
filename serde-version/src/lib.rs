@@ -179,9 +179,16 @@ pub use serde_version_derive::*;
 #[macro_use]
 extern crate failure;
 
+#[cfg(test)]
+extern crate quickcheck;
+#[cfg(test)]
+#[macro_use(quickcheck)]
+extern crate quickcheck_macros;
+
 mod deserializer;
 pub mod exports;
 mod seed;
+mod version_groups;
 mod visitor;
 
 pub use deserializer::{DefaultVersionMap, VersionMap, VersionedDeserializer};
