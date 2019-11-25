@@ -29,17 +29,17 @@ jobs:
         wget https://github.com/rust-lang/mdBook/releases/download/v0.3.5/mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz &&
         tar xzf mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz
       script:
-        - ./mdbook build manual
+        - ./mdbook build manual -d target/manual/crates/serde-version
       deploy:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_PAGES_TOKEN
         repo: fredpointzero/fredpointzero.github.io
         target_branch: master
-        local_dir: manual/book
+        local_dir: target/manual
         keep_history: true
         on:
-          tags: true
+          #tags: true
           all_branches: true
 
   allow_failures:
