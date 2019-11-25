@@ -235,14 +235,16 @@ extern crate serde_version_derive;
 #[cfg(feature = "serde_version_derive")]
 #[doc(hidden)]
 pub use serde_version_derive::*;
-#[macro_use]
-extern crate failure;
 
-// This one is not detected as used, but it is used
-// in our macros.
+// Rexport lazy static
 #[allow(unused_imports)]
 #[macro_use]
 extern crate lazy_static;
+#[doc(hidden)]
+pub use lazy_static::*;
+
+#[macro_use]
+extern crate failure;
 
 #[cfg(test)]
 extern crate quickcheck;
@@ -255,6 +257,9 @@ mod seed;
 mod version_groups;
 mod version_map;
 mod visitor;
+
+#[macro_use]
+mod utils;
 
 pub mod exports;
 #[cfg(feature = "toml-support")]

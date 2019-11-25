@@ -1,22 +1,32 @@
-use crate::version_map::aggregate_version_maps;
 use crate::{
-    AggregateVersionMapError, DeserializeVersioned, VersionGroupResolver, VersionGroupURIs,
-    VersionedDeserializer,
+    aggregate_version_maps, AggregateVersionMapError, DeserializeVersioned, Error,
+    VersionGroupResolver, VersionGroupURIs, VersionMap, VersionedDeserializer,
 };
 use failure::Fail;
+use serde::Serialize;
 
 #[derive(Debug, Fail)]
-pub enum Error {
+pub enum DeserializeError {
     #[fail(display = "{}", 0)]
-    Toml(::toml::de::Deserializer::Error),
-    #[fail(display = "{}", .)]
+    Toml(::toml::de::Error),
+    #[fail(display = "{}", 0)]
+    De(Error<Error<::toml::de::Error>>),
+    #[fail(display = "{}", 0)]
     AggregateError(AggregateVersionMapError),
 }
+impl_from_enum! {
+    DeserializeError::Toml => ::toml::de::Error,
+    DeserializeError::De => Error<Error<::toml::de::Error>>,
+    DeserializeError::AggregateError => AggregateVersionMapError,
+}
 
-pub fn deserialize<'de, T: DeserializeVersioned<'de>>(
-    input: &str,
-    resolver: &VersionGroupResolver,
-) -> Result<T, ::toml::de::Deserializer::Error> {
+pub fn deserialize<'de, T: DeserializeVersioned<'de, VMR::VM>, VMR: VersionGroupResolver>(
+    input: &'de str,
+    resolver: &VMR,
+) -> Result<T, DeserializeError>
+where
+    VMR::VM: VersionMap,
+{
     let mut de = ::toml::de::Deserializer::new(input);
     let uris: VersionGroupURIs = serde::Deserialize::deserialize(&mut de)?;
 
@@ -28,6 +38,31 @@ pub fn deserialize<'de, T: DeserializeVersioned<'de>>(
 
     let input_left = input.split_at(end_of_version_header + 1).1;
     let mut de2 = ::toml::de::Deserializer::new(input_left);
-    let mut de3 = VersionedDeserializer::new(&mut de2, &version_map);
-    DeserializeVersioned::deserialize_versioned(&mut de3, &version_map)
+    let de3 = VersionedDeserializer::new(&mut de2, &version_map);
+    Ok(DeserializeVersioned::deserialize_versioned(
+        de3,
+        &version_map,
+    )?)
+}
+
+pub fn serialize_inplace<'s, T: Serialize>(
+    str: &'s mut String,
+    value: &T,
+    uris: &VersionGroupURIs,
+) -> Result<(), ::toml::ser::Error> {
+    let mut ser = ::toml::ser::Serializer::new(str);
+
+    Serialize::serialize(uris, &mut ser)?;
+    Serialize::serialize(value, &mut ser)?;
+
+    Ok(())
+}
+
+pub fn serialize<'s, T: Serialize>(
+    value: &T,
+    uris: &VersionGroupURIs,
+) -> Result<String, ::toml::ser::Error> {
+    let mut str = String::new();
+    serialize_inplace(&mut str, value, uris)?;
+    Ok(str)
 }
