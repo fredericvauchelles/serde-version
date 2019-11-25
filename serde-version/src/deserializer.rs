@@ -15,7 +15,7 @@ where
     D: Deserializer<'de>,
 {
     deserializer: D,
-    version_map: &'de VM,
+    version_map: VM,
     marker: std::marker::PhantomData<&'de usize>,
 }
 
@@ -24,7 +24,7 @@ where
     D: Deserializer<'de>,
     VM: VersionMap,
 {
-    pub fn new(deserializer: D, version_map: &'de VM) -> Self {
+    pub fn new(deserializer: D, version_map: VM) -> Self {
         Self {
             deserializer,
             version_map,

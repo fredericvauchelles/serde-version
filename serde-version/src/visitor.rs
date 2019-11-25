@@ -8,14 +8,16 @@ use serde::{Deserialize, Deserializer};
 /// Wrap a visitor to wrap seed or call specialized methods
 pub struct VersionedVisitor<'v, V, VM> {
     visitor: V,
-    version_map: &'v VM,
+    version_map: VM,
+    marker: std::marker::PhantomData<&'v ()>,
 }
 
 impl<'v, V, VM> VersionedVisitor<'v, V, VM> {
-    pub fn new(visitor: V, version_map: &'v VM) -> Self {
+    pub fn new(visitor: V, version_map: VM) -> Self {
         Self {
             visitor,
             version_map,
+            marker: std::marker::PhantomData,
         }
     }
 }
@@ -104,6 +106,7 @@ where
         let visitor = VersionedVisitor {
             visitor,
             version_map: self.version_map,
+            marker: std::marker::PhantomData,
         };
         self.visitor
             .visit_seq(visitor)
@@ -118,6 +121,7 @@ where
         let visitor = VersionedVisitor {
             visitor,
             version_map: self.version_map,
+            marker: std::marker::PhantomData,
         };
         self.visitor
             .visit_map(visitor)
@@ -132,6 +136,7 @@ where
         let visitor = VersionedVisitor {
             visitor,
             version_map: self.version_map,
+            marker: std::marker::PhantomData,
         };
         self.visitor
             .visit_enum(visitor)
@@ -154,7 +159,7 @@ where
     where
         T: DeserializeSeed<'de>,
     {
-        let seed = VersionedSeed::new(seed, self.version_map);
+        let seed = VersionedSeed::new(seed, self.version_map.clone());
         self.visitor
             .next_element_seed(seed)
             .map_err(Error::DeserializeError)
@@ -165,7 +170,7 @@ where
     where
         T: Deserialize<'de>,
     {
-        <T as DeserializeVersioned<'de, VM>>::next_element(self, self.version_map)
+        <T as DeserializeVersioned<'de, VM>>::next_element(self, self.version_map.clone())
             .map_err(|err| err.reduce())
     }
 }
@@ -185,7 +190,7 @@ where
     where
         K: DeserializeSeed<'de>,
     {
-        let seed = VersionedSeed::new(seed, self.version_map);
+        let seed = VersionedSeed::new(seed, self.version_map.clone());
         self.visitor
             .next_key_seed(seed)
             .map_err(Error::DeserializeError)
@@ -199,7 +204,7 @@ where
     where
         S: DeserializeSeed<'de>,
     {
-        let seed = VersionedSeed::new(seed, self.version_map);
+        let seed = VersionedSeed::new(seed, self.version_map.clone());
         self.visitor
             .next_value_seed(seed)
             .map_err(Error::DeserializeError)
@@ -216,8 +221,8 @@ where
         K: DeserializeSeed<'de>,
         V2: DeserializeSeed<'de>,
     {
-        let kseed = VersionedSeed::new(kseed, self.version_map);
-        let vseed = VersionedSeed::new(vseed, self.version_map);
+        let kseed = VersionedSeed::new(kseed, self.version_map.clone());
+        let vseed = VersionedSeed::new(vseed, self.version_map.clone());
         self.visitor
             .next_entry_seed(kseed, vseed)
             .map_err(Error::DeserializeError)
@@ -228,7 +233,7 @@ where
     where
         K: Deserialize<'de>,
     {
-        <K as DeserializeVersioned<'de, VM>>::next_key(self, self.version_map)
+        <K as DeserializeVersioned<'de, VM>>::next_key(self, self.version_map.clone())
             .map_err(|err| err.reduce())
     }
 
@@ -237,7 +242,7 @@ where
     where
         V2: Deserialize<'de>,
     {
-        <V2 as DeserializeVersioned<'de, VM>>::next_value(self, self.version_map)
+        <V2 as DeserializeVersioned<'de, VM>>::next_value(self, self.version_map.clone())
             .map_err(|err| err.reduce())
     }
 
@@ -263,12 +268,13 @@ where
     where
         S: DeserializeSeed<'de>,
     {
-        let seed = VersionedSeed::new(seed, self.version_map);
+        let seed = VersionedSeed::new(seed, self.version_map.clone());
         match self.visitor.variant_seed(seed) {
             Ok((value, variant)) => {
                 let variant = VersionedVisitor {
                     visitor: variant,
                     version_map: self.version_map,
+                    marker: std::marker::PhantomData,
                 };
                 Ok((value, variant))
             }
@@ -281,7 +287,7 @@ where
     where
         V2: Deserialize<'de>,
     {
-        let version_map = self.version_map;
+        let version_map = self.version_map.clone();
         <V2 as DeserializeVersioned<'de, VM>>::variant(self, version_map)
             .map_err(|err| err.reduce())
     }
@@ -318,6 +324,7 @@ where
         let visitor = VersionedVisitor {
             visitor,
             version_map: self.version_map,
+            marker: std::marker::PhantomData,
         };
         self.visitor
             .tuple_variant(len, visitor)
@@ -336,6 +343,7 @@ where
         let visitor = VersionedVisitor {
             visitor,
             version_map: self.version_map,
+            marker: std::marker::PhantomData,
         };
         self.visitor
             .struct_variant(fields, visitor)

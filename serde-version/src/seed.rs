@@ -7,12 +7,17 @@ use serde::Deserializer;
 /// Wrap calls to deserialize with a VersionedDeserializer
 pub struct VersionedSeed<'v, S, VM> {
     seed: S,
-    version_map: &'v VM,
+    version_map: VM,
+    marker: std::marker::PhantomData<&'v ()>,
 }
 
 impl<'v, S, VM> VersionedSeed<'v, S, VM> {
-    pub fn new(seed: S, version_map: &'v VM) -> Self {
-        Self { seed, version_map }
+    pub fn new(seed: S, version_map: VM) -> Self {
+        Self {
+            seed,
+            version_map,
+            marker: std::marker::PhantomData,
+        }
     }
 }
 
