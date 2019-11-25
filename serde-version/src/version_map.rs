@@ -64,7 +64,7 @@ mod aggregate {
             for (i, uri) in uris.iter().enumerate() {
                 if let Some(version_map) = resolver.resolve(uri) {
                     for (k, v) in version_map.iter() {
-                        if let Some(_) = result.get(k) {
+                        if result.get(k).is_some() {
                             // We found two version maps requesting a version
                             // of the same type.
                             // Version map must have disjoint keys.
@@ -76,7 +76,7 @@ mod aggregate {
                             for j in 0..(i - 1) {
                                 // unwrap: We know previous uri have a version_map
                                 let version_map = resolver.resolve(&uris[j]).unwrap();
-                                if let Some(_) = version_map.get(k) {
+                                if version_map.get(k).is_some() {
                                     // We found the other version map
                                     return Err(
                                         AggregateVersionMapError::TypeInMultipleVersionGroups(
@@ -121,13 +121,15 @@ mod version_map_impls {
             std::collections::HashMap::get(self, type_id).cloned()
         }
     }
+
+    type Iter<'i, T> = std::iter::Map<
+        std::collections::hash_map::Iter<'i, T, usize>,
+        fn((&'i T, &'i usize)) -> (&'i str, usize),
+    >;
     impl<'i, T: Borrow<str> + Hash + Eq + 'i, S: BuildHasher + Sync> VersionMapIter<'i>
         for HashMap<T, usize, S>
     {
-        type Iter = std::iter::Map<
-            std::collections::hash_map::Iter<'i, T, usize>,
-            fn((&'i T, &'i usize)) -> (&'i str, usize),
-        >;
+        type Iter = Iter<'i, T>;
 
         fn iter(&'i self) -> Self::Iter {
             HashMap::<T, usize, S>::iter(self).map(|(k, v)| (k.borrow(), *v))
