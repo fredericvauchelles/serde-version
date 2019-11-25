@@ -1,5 +1,6 @@
 #![feature(specialization)]
 
+#[macro_use]
 extern crate serde_version_derive;
 #[macro_use]
 extern crate serde_version;

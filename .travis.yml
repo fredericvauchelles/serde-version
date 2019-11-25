@@ -11,14 +11,10 @@ jobs:
         - rustup component add clippy || travis_terminate 0
         - cargo +$TRAVIS_RUST_VERSION clippy --all-features -- -D clippy::all
 
-    - name: Build
-      script:
-        - cargo +$TRAVIS_RUST_VERSION build
-        - cargo +$TRAVIS_RUST_VERSION build --all-features
-
     - name: Test
       before_script: bash .travis/scripts/generate_readme.sh
       script:
+        - cargo test
         - cargo test --all-features
       deploy:
         provider: script
