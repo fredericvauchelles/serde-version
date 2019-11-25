@@ -1,14 +1,22 @@
-use serde::{de, Deserialize, Serialize};
+use serde::{de, Deserialize, Serialize, Serializer};
 use std::borrow::Cow;
 use std::convert::TryFrom;
 use std::fmt::Display;
 use std::ops::Deref;
 
-#[derive(Serialize, Debug, Clone, Eq, PartialEq, Hash)]
+/// An uri identifying a version group.
+///
+/// Usually a version group is made of both an api group and a version.
+/// ```rust
+/// # use serde_version::VersionGroupURI;
+/// # use std::convert::TryInto;
+/// #
+/// // This is the uri with api group 'my_api_group' and version 'my_version'
+/// let uri: VersionGroupURI = "my_api_group:my_version".try_into().unwrap();
+/// ```
+#[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub struct VersionGroupURI<'a> {
-    #[serde(borrow)]
     source: Cow<'a, str>,
-    #[serde(skip)]
     index: usize,
 }
 impl<'a> VersionGroupURI<'a> {
@@ -17,6 +25,14 @@ impl<'a> VersionGroupURI<'a> {
     }
     pub fn version(&self) -> &str {
         &self.source[(self.index + 1)..]
+    }
+}
+impl<'a> Serialize for VersionGroupURI<'a> {
+    fn serialize<S>(&self, serializer: S) -> Result<<S as Serializer>::Ok, <S as Serializer>::Error>
+    where
+        S: Serializer,
+    {
+        serializer.serialize_str(&self.source)
     }
 }
 
@@ -132,6 +148,9 @@ impl<'a, 'de: 'a> Deserialize<'de> for VersionGroupURI<'a> {
     }
 }
 
+/// A set of version group uris.
+///
+/// To build this type, use the `Into` trait.
 #[derive(Serialize, Deserialize, Debug, Clone, Eq, PartialEq, Hash)]
 pub struct VersionGroupURIs<'a> {
     #[serde(borrow)]
@@ -147,6 +166,11 @@ impl<'a> Deref for VersionGroupURIs<'a> {
 
     fn deref(&self) -> &Self::Target {
         self.versions()
+    }
+}
+impl<'a> From<Vec<VersionGroupURI<'a>>> for VersionGroupURIs<'a> {
+    fn from(v: Vec<VersionGroupURI<'a>>) -> Self {
+        Self { v }
     }
 }
 

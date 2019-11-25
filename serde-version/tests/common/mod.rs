@@ -12,7 +12,7 @@ macro_rules! declare_tests_versions {
                 $(
                     let mut de = serde_test::Deserializer::new($tokens);
                     let de_versioned = VersionedDeserializer::new(&mut de, version_map);
-                    match <$ty as DeserializeVersioned>::deserialize_versioned(de_versioned, version_map) {
+                    match <$ty as DeserializeVersioned<'_, _>>::deserialize_versioned(de_versioned, version_map) {
                         Ok(_) => {
                             panic!("tokens should have failed to deserialize")
                         }
@@ -37,7 +37,7 @@ macro_rules! declare_tests_versions {
                     // Test ser/de roundtripping
                     let mut de = serde_test::Deserializer::new($tokens);
                     let de_versioned = ::serde_version::VersionedDeserializer::new(&mut de, version_map);
-                    match <$ty as ::serde_version::DeserializeVersioned>::deserialize_versioned(de_versioned, version_map) {
+                    match <$ty as ::serde_version::DeserializeVersioned<'_, _>>::deserialize_versioned(de_versioned, version_map) {
                         Ok(v) => {
                             assert_eq!($value, v);
                             v

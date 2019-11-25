@@ -3,8 +3,12 @@ use crate::DefaultVersionMap;
 use std::borrow::Borrow;
 use std::collections::HashMap;
 
+/// Find the `VersionMap` associated to a `VersionGroupURI`
 pub trait VersionGroupResolver {
+    /// The type of the `VersionMap` returned
     type VM;
+
+    /// Find the `VersionMap` associated to a `VersionGroupURI`
     fn resolve<'s, 'u: 's, T: Borrow<VersionGroupURI<'u>> + 's>(
         &'s self,
         uri: &'u T,

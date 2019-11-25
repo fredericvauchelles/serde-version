@@ -1,3 +1,6 @@
+use serde_version::toml::serialize;
+use std::convert::TryInto;
+
 #[derive(Deserialize)]
 #[serde(rename = "A")]
 struct Av1 {
@@ -59,20 +62,20 @@ version_group_enum! {
     }
 }
 
-macro_rules! declare_tests {
+macro_rules! declare_de_tests {
     ($name:ident { $($value:expr => $toml:expr)* }) => {
         #[test]
         fn $name() {
             $({
                 let input = $toml;
-                let de: Container = serde_version::toml::deserialize(input, &*VERSIONS).unwrap();
+                let de: Container = serde_version::toml::deserialize(input, &*VERSIONS, &()).unwrap();
                 assert_eq!($value, de);
             })*
         }
     };
 }
 
-declare_tests! {
+declare_de_tests! {
     deserialize_works {
         Container { a: A { b: 5 }, b: B { b: 3 } } => r#"v = ["a:1", "b:2"]
 [a]
@@ -89,4 +92,26 @@ b = 5
 b = 3
 "#
     }
+}
+
+#[test]
+fn serialize_works() {
+    let v = serialize(
+        &Container {
+            a: A { b: 5 },
+            b: B { b: 3 },
+        },
+        &vec!["a:1".try_into().unwrap(), "b:2".try_into().unwrap()].into(),
+    )
+    .unwrap();
+    assert_eq!(
+        r#"v = ["a:1", "b:2"]
+[a]
+b = 5
+
+[b]
+b = 3
+"#,
+        v
+    );
 }

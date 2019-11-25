@@ -272,8 +272,8 @@ pub use version_groups::{
     DefaultVersionGroupResolver, VersionGroupResolver, VersionGroupURI, VersionGroupURIs,
 };
 pub use version_map::{
-    aggregate_version_maps, AggregateVersionMapError, DefaultVersionMap,
-    TypeInMultipleVersionGroups, UnknownVersionURI, VersionMap,
+    AggregateVersionMap, AggregateVersionMapError, DefaultVersionMap, TypeInMultipleVersionGroups,
+    UnknownVersionURI, VersionMap,
 };
 
 /// Error used when a provided version number is not handled by current code
@@ -362,6 +362,10 @@ pub trait DeserializeVersioned<'de, VM: VersionMap>: serde::Deserialize<'de> {
     /// Implement this method to specialize the deserialization for a particular type.
     ///
     /// The default implementation ignore the versioning
+    ///
+    /// Note: The `VM` type should be a reference type for better performance.
+    ///   The version_map is cloned during the deserialization process, but cloning a reference
+    ///   is cheap.
     fn deserialize_versioned<D>(deserializer: D, _version_map: VM) -> Result<Self, Error<D::Error>>
     where
         D: serde::de::Deserializer<'de>;

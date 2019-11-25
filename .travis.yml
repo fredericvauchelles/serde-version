@@ -14,7 +14,7 @@ jobs:
     - name: Test
       before_script: bash .travis/scripts/generate_readme.sh
       script:
-        - cargo test
+        - cargo test --all-features
       deploy:
         provider: script
         script: bash .travis/scripts/cargo_publish.sh $TRAVIS_RUST_VERSION

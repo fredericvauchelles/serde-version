@@ -8,10 +8,10 @@ pub fn deserialize_test<
 >(
     input: &'de str,
     v: T,
-    version_map: &'de VM,
+    version_map: VM,
 ) {
     let mut ron_deserializer = ron::de::Deserializer::from_str(input).unwrap();
-    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map);
+    let deserializer = VersionedDeserializer::new(&mut ron_deserializer, version_map.clone());
     let de = T::deserialize_versioned(deserializer, version_map).unwrap();
 
     assert_eq!(v, de);
