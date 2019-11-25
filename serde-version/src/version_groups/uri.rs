@@ -1,6 +1,8 @@
+use failure::_core::fmt::{Error, Formatter};
 use serde::{de, Deserialize, Serialize};
 use std::borrow::Cow;
 use std::convert::TryFrom;
+use std::fmt::Display;
 use std::ops::Deref;
 
 #[derive(Serialize, Debug, Clone, Eq, PartialEq, Hash)]
@@ -18,6 +20,28 @@ impl<'a> VersionGroupURI<'a> {
         &self.source[(self.index + 1)..]
     }
 }
+
+impl<'a> Display for VersionGroupURI<'a> {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        write!(f, "{}", self.source)
+    }
+}
+
+impl<'a> VersionGroupURI<'a> {
+    pub fn to_static(&self) -> VersionGroupURI<'static> {
+        VersionGroupURI {
+            source: Cow::Owned(self.source.clone().into_owned()),
+            index: self.index,
+        }
+    }
+}
+
+impl<'a> ToString for VersionGroupURI<'a> {
+    fn to_string(&self) -> String {
+        self.source.clone().into_owned()
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Hash, Clone, Fail)]
 #[fail(display = "Invalid format {}, expected \"api_group:version\"", source)]
 pub struct TryFromError {

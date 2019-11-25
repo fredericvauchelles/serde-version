@@ -1,15 +1,10 @@
 use super::visitor::VersionedVisitor;
 use super::Error;
+use crate::version_map::VersionMap;
 use failure::_core::borrow::Borrow;
 use serde::Deserializer;
 use std::collections::HashMap;
 use std::hash::{BuildHasher, Hash};
-
-/// Maps the version number for each deserialization type name
-pub trait VersionMap: Sync {
-    fn get(&self, type_id: &str) -> Option<usize>;
-}
-pub type DefaultVersionMap<'a> = HashMap<&'a str, usize>;
 
 /// A wrapper around a deserialize to support the deserialization.
 ///

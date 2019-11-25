@@ -251,10 +251,14 @@ extern crate quickcheck;
 extern crate quickcheck_macros;
 
 mod deserializer;
-pub mod exports;
 mod seed;
 mod version_groups;
+mod version_map;
 mod visitor;
+
+pub mod exports;
+#[cfg(feature = "toml-support")]
+pub mod toml;
 
 pub use deserializer::{DefaultVersionMap, VersionMap, VersionedDeserializer};
 use serde::de::{EnumAccess, MapAccess, SeqAccess};
