@@ -10,20 +10,21 @@ use std::hash::{BuildHasher, Hash};
 ///
 /// This deserializer will wrap all calls where specialization is required. (Like
 /// `next_element`, `next_value`, ...)
-pub struct VersionedDeserializer<'de, D>
+pub struct VersionedDeserializer<'de, D, VM>
 where
     D: Deserializer<'de>,
 {
     deserializer: D,
-    version_map: &'de dyn VersionMap,
+    version_map: &'de VM,
     marker: std::marker::PhantomData<&'de usize>,
 }
 
-impl<'de, D> VersionedDeserializer<'de, D>
+impl<'de, D, VM> VersionedDeserializer<'de, D, VM>
 where
     D: Deserializer<'de>,
+    VM: VersionMap,
 {
-    pub fn new(deserializer: D, version_map: &'de dyn VersionMap) -> Self {
+    pub fn new(deserializer: D, version_map: &'de VM) -> Self {
         Self {
             deserializer,
             version_map,
@@ -47,7 +48,9 @@ macro_rules! forward_deserialize {
     }
 }
 
-impl<'de, D: Deserializer<'de>> Deserializer<'de> for VersionedDeserializer<'de, D> {
+impl<'de, D: Deserializer<'de>, VM: VersionMap> Deserializer<'de>
+    for VersionedDeserializer<'de, D, VM>
+{
     type Error = Error<D::Error>;
 
     forward_deserialize!(deserialize_any);
