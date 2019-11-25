@@ -5,6 +5,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+
+## [0.5.0]
 ### Added
 * API to aggregate version maps from multiple version uris into a single version map
 * API to easily deserialize toml with versioning support (feature gate `toml-support`)
@@ -62,7 +64,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Versioning feature for serde with additional trait `DeserializeVersioned` and deserializer `VersionedDeserialized`
 
-[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/0.4.2...HEAD
+[Unreleased]: https://github.com/olivierlacan/keep-a-changelog/compare/0.5.0...HEAD
+[0.5.0]: https://github.com/fredpointzero/serde-version/releases/tag/0.5.0
 [0.4.2]: https://github.com/fredpointzero/serde-version/releases/tag/0.4.2
 [0.4.1]: https://github.com/fredpointzero/serde-version/releases/tag/0.4.1
 [0.4.0]: https://github.com/fredpointzero/serde-version/releases/tag/0.4.0
