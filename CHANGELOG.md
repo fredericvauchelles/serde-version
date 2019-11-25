@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.1]
+### Changed
+* README for crates.io
+
 ## [0.5.0]
 ### Added
 * API to aggregate version maps from multiple version uris into a single version map
