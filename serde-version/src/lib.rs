@@ -8,6 +8,8 @@
 //!
 //! Serde version provide a versioning feature for serde for the main use cases.
 //!
+//! See the guide [here](https://fredpointzero.github.io/crates/serde-version/).
+//!
 //! Note 1: Requires the specialization feature.
 //! Note 2: Use the `derive` feature to generate the `DeserializeVersioned` implementation
 //!

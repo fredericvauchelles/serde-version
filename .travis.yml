@@ -40,7 +40,7 @@ jobs:
         local_dir: manual/target/manual
         keep_history: true
         on:
-          #tags: true
+          tags: true
           all_branches: true
 
   allow_failures:
