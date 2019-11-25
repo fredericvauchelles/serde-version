@@ -30,6 +30,7 @@ jobs:
         tar xzf mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz
       script:
         - ./mdbook build manual -d target/manual/crates/serde-version
+        - echo "" > manual/target/manual/index.html
       deploy:
         provider: pages
         skip_cleanup: true
