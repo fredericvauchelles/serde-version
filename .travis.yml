@@ -19,6 +19,7 @@ jobs:
         provider: script
         script: bash .travis/scripts/cargo_publish.sh $TRAVIS_RUST_VERSION
         on:
+          skip_cleanup: true
           tags: true
           all_branches: true
 
