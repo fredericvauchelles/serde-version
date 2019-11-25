@@ -1,6 +1,6 @@
 use super::visitor::VersionedVisitor;
 use super::Error;
-use crate::version_map::VersionMap;
+use crate::version_map::{VersionMap, VersionMapIter};
 use failure::_core::borrow::Borrow;
 use serde::Deserializer;
 use std::collections::HashMap;
@@ -88,26 +88,32 @@ impl<'de, D: Deserializer<'de>, VM: VersionMap> Deserializer<'de>
     forward_deserialize!(deserialize_ignored_any);
 }
 
-impl<T: Borrow<str> + Hash + Eq + Sync + 'static, S: BuildHasher + Sync> VersionMap
-    for HashMap<T, usize, S>
-{
-    fn get(&self, type_id: &str) -> Option<usize> {
-        std::collections::HashMap::get(self, type_id).cloned()
-    }
-}
+macro_rules! impl_hashmap {
+    (($($ly:tt),*), $($name:ty)*) => {
+        impl<$($ly,)* T: Borrow<str> + Hash + Eq + Sync + 'static, S: BuildHasher + Sync> VersionMap
+            for $($name)*
+        {
+            fn get(&self, type_id: &str) -> Option<usize> {
+                std::collections::HashMap::get(self, type_id).cloned()
+            }
+        }
+        impl<$($ly,)* 'i, T: Borrow<str> + Hash + Eq + 'i, S: BuildHasher + Sync> VersionMapIter<'i>
+            for $($name)*
+        {
+            type Iter = std::iter::Map<
+                std::collections::hash_map::Iter<'i, T, usize>,
+                fn((&'i T, &'i usize)) -> (&'i str, usize),
+            >;
 
-impl<'a, T: Borrow<str> + Hash + Eq + Sync, S: BuildHasher + Sync> VersionMap
-    for &'a HashMap<T, usize, S>
-{
-    fn get(&self, type_id: &str) -> Option<usize> {
-        std::collections::HashMap::get(self, type_id).cloned()
-    }
+            fn iter(&'i self) -> Self::Iter {
+                HashMap::<T, usize, S>::iter(self).map(|(k, v)| (k.borrow(), *v))
+            }
+        }
+    };
+    () => {
+        impl_hashmap!((), HashMap<T, usize, S>);
+        impl_hashmap!(('a), &'a HashMap<T, usize, S>);
+        impl_hashmap!(('a), &'a mut HashMap<T, usize, S>);
+    };
 }
-
-impl<'a, T: Borrow<str> + Hash + Eq + Sync, S: BuildHasher + Sync> VersionMap
-    for &'a mut HashMap<T, usize, S>
-{
-    fn get(&self, type_id: &str) -> Option<usize> {
-        std::collections::HashMap::get(self, type_id).cloned()
-    }
-}
+impl_hashmap!();

@@ -1,13 +1,16 @@
-use crate::{DeserializeVersioned, VersionGroupResolver, VersionGroupURIs};
+use crate::version_map::aggregate_version_maps;
+use crate::{
+    AggregateVersionMapError, DeserializeVersioned, VersionGroupResolver, VersionGroupURIs,
+    VersionedDeserializer,
+};
 use failure::Fail;
 
 #[derive(Debug, Fail)]
-#[fail(display = "{}", .)]
 pub enum Error {
     #[fail(display = "{}", 0)]
     Toml(::toml::de::Deserializer::Error),
-    #[fail(display = "Unknown version uri: {}", uri)]
-    UnknownVersionURI { uri: String },
+    #[fail(display = "{}", .)]
+    AggregateError(AggregateVersionMapError),
 }
 
 pub fn deserialize<'de, T: DeserializeVersioned<'de>>(
@@ -15,20 +18,9 @@ pub fn deserialize<'de, T: DeserializeVersioned<'de>>(
     resolver: &VersionGroupResolver,
 ) -> Result<T, ::toml::de::Deserializer::Error> {
     let mut de = ::toml::de::Deserializer::new(input);
-    let versions: VersionGroupURIs = serde::Deserialize::deserialize(&mut de)?;
+    let uris: VersionGroupURIs = serde::Deserialize::deserialize(&mut de)?;
 
-    let mut version_maps = Vec::with_capacity(versions.len());
-    for uri in versions {
-        let version_map = match resolver.resolve(uri) {
-            Some(version_map) => version_map,
-            None => {
-                return Err(Error::UnknownVersionURI {
-                    uri: uri.to_string(),
-                })
-            }
-        };
-        version_maps.push(version_map);
-    }
+    let version_map = aggregate_version_maps(&uris, resolver)?;
 
     // unwrap: the VersionGroupURIs ends with an array, so the token ']'
     // must exists as we successfully deserialized it.
@@ -36,5 +28,6 @@ pub fn deserialize<'de, T: DeserializeVersioned<'de>>(
 
     let input_left = input.split_at(end_of_version_header + 1).1;
     let mut de2 = ::toml::de::Deserializer::new(input_left);
-    DeserializeVersioned::deserialize_versioned(&mut de2, &version_maps)
+    let mut de3 = VersionedDeserializer::new(&mut de2, &version_map);
+    DeserializeVersioned::deserialize_versioned(&mut de3, &version_map)
 }

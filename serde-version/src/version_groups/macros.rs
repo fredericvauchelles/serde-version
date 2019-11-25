@@ -45,7 +45,7 @@ macro_rules! version_map_static {
 macro_rules! __version_map_static {
     (($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident), ($($path:path => $version:expr),*,)) => {
         lazy_static! {
-            $(#[$attr])* $($vis)* static ref $id: std::collections::HashMap<&'static str, usize>
+            $(#[$attr])* $($vis)* static ref $id: $crate::DefaultVersionMap<'static>
                 = version_map_new!{ $($path => $version),*, };
         }
     }
@@ -56,7 +56,7 @@ macro_rules! __version_map_static {
 macro_rules! version_group_resolver_new {
     ($(($api_group:expr, $api_version:expr) => { $($path:path => $version:expr),*, }),*,) => {
         {
-            let vec: Vec<((&str, &str), Box<dyn $crate::VersionMap>)> =
+            let vec: Vec<((&str, &str), Box<$crate::DefaultVersionMap>)> =
             vec![
             $((
                 ($api_group, $api_version),

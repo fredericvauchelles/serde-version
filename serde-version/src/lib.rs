@@ -260,11 +260,15 @@ pub mod exports;
 #[cfg(feature = "toml-support")]
 pub mod toml;
 
-pub use deserializer::{DefaultVersionMap, VersionMap, VersionedDeserializer};
+pub use deserializer::VersionedDeserializer;
 use serde::de::{EnumAccess, MapAccess, SeqAccess};
 use std::fmt::Display;
 pub use version_groups::{
     DefaultVersionGroupResolver, VersionGroupResolver, VersionGroupURI, VersionGroupURIs,
+};
+pub use version_map::{
+    aggregate_version_maps, AggregateVersionMapError, DefaultVersionMap,
+    TypeInMultipleVersionGroups, UnknownVersionURI, VersionMap,
 };
 
 /// Error used when a provided version number is not handled by current code

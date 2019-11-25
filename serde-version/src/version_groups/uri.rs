@@ -1,4 +1,3 @@
-use failure::_core::fmt::{Error, Formatter};
 use serde::{de, Deserialize, Serialize};
 use std::borrow::Cow;
 use std::convert::TryFrom;
