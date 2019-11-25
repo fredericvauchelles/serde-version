@@ -17,6 +17,12 @@ echo "INFO: Publish serde-version-derive";
 cd serde_version_derive;
 cargo +$TOOLCHAIN publish --allow-dirty || exit 1;
 
+echo "wait crates.io registry to update";
+sleep 10
+
+echo "INFO: update registry with an install command";
+cargo +$TOOLCHAIN install lazy_static;
+
 echo "INFO: Publish serde-version";
 cd ../serde-version;
 cargo +$TOOLCHAIN publish --allow-dirty || exit 1;
