@@ -41,4 +41,3 @@ jobs:
 
   allow_failures:
     - name: Clippy
-    - name: Build Manual
