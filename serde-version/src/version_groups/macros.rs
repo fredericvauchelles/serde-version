@@ -1,4 +1,20 @@
 /// Generate a static field initialized with specified version groups
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_version;
+/// #
+/// # struct A;
+/// # struct B;
+/// version_group_resolver_static! {
+///     VERSIONS = {
+///         ( "my.api_group", "1.0.0" ) => { A => 2, B => 3, },
+///     }
+/// }
+/// # // To have extern crate syntax
+/// # fn main() {
+/// # }
+/// ```
 #[macro_export]
 macro_rules! version_group_resolver_static {
     ($(#[$attr:meta])* $id:ident = { $($body:tt)* }) => {
@@ -28,6 +44,19 @@ macro_rules! __version_group_resolver_static {
 }
 
 /// Generates a static field initialized with specified `VersionMap`.
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_version;
+/// #
+/// # struct A;
+/// # struct B;
+/// version_map_static! {
+///     TEST_1 = { A => 2, B => 3, }
+/// }
+/// # // To have extern crate syntax
+/// # fn main() {}
+/// ```
 #[macro_export]
 macro_rules! version_map_static {
     ($(#[$attr:meta])* $id:ident = { $($body:tt)* }) => {
@@ -45,18 +74,32 @@ macro_rules! version_map_static {
 macro_rules! __version_map_static {
     (($(#[$attr:meta])*), ($($vis:tt)*), ($id:ident), ($($path:path => $version:expr),*,)) => {
         lazy_static! {
-            $(#[$attr])* $($vis)* static ref $id: std::collections::HashMap<&'static str, usize>
+            $(#[$attr])* $($vis)* static ref $id: $crate::DefaultVersionMap<'static>
                 = version_map_new!{ $($path => $version),*, };
         }
     }
 }
 
 /// Instantiate a `VersionGroupResolver` with specified version groups
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_version;
+/// #
+/// # struct A;
+/// # struct B;
+/// # // To have extern crate syntax
+/// # fn main() {
+/// let resolver = version_group_resolver_new! {
+///     ( "my.api_group", "1.0.0" ) => { A => 2, B => 3, },
+/// };
+/// # }
+/// ```
 #[macro_export]
 macro_rules! version_group_resolver_new {
     ($(($api_group:expr, $api_version:expr) => { $($path:path => $version:expr),*, }),*,) => {
         {
-            let vec: Vec<((&str, &str), Box<dyn $crate::VersionMap>)> =
+            let vec: Vec<((&str, &str), Box<$crate::DefaultVersionMap>)> =
             vec![
             $((
                 ($api_group, $api_version),
@@ -69,6 +112,21 @@ macro_rules! version_group_resolver_new {
 }
 
 /// Instantiate a `VersionMap` with specified type's version
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_version;
+/// #
+/// # struct A;
+/// # struct B;
+/// # // To have extern crate syntax
+/// # fn main() {
+/// let resolver = version_map_new! {
+///     A => 2,
+///     B => 3,
+/// };
+/// # }
+/// ```
 #[macro_export]
 macro_rules! version_map_new {
     ($($path:path => $version:expr),*,) => {
@@ -83,6 +141,24 @@ macro_rules! version_map_new {
 }
 
 /// Create an enum that maps an entry to a `VersionGroupURI<T>`
+///
+/// ```rust
+/// # #[macro_use]
+/// # extern crate serde_version;
+/// # #[macro_use]
+/// # extern crate serde;
+/// # use serde::{Serialize, Deserialize};
+/// #
+/// version_group_enum! {
+///     #[derive(Serialize, Deserialize)]
+///     enum Versions {
+///         V1 as "v1" => "my.api_group:1.0.0",
+///         V2 as "v2" => "my.second.api_group:1.2.0",
+///     }
+/// }
+/// # // To have extern crate syntax
+/// # fn main() {}
+/// ```
 #[macro_export]
 macro_rules! version_group_enum {
     ($(#[$attr:meta])* enum $id:ident { $($body:tt)* }) => {

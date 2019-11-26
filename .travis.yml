@@ -9,12 +9,13 @@ jobs:
     - name: Clippy
       script:
         - rustup component add clippy || travis_terminate 0
-        - cargo +$TRAVIS_RUST_VERSION clippy -- -D clippy::all
+        - cargo +$TRAVIS_RUST_VERSION clippy --all-features -- -D clippy::all
 
     - name: Test
       before_script: bash .travis/scripts/generate_readme.sh
       script:
         - cargo test
+        - cargo test --all-features
       deploy:
         provider: script
         script: bash .travis/scripts/cargo_publish.sh $TRAVIS_RUST_VERSION
@@ -28,14 +29,15 @@ jobs:
         wget https://github.com/rust-lang/mdBook/releases/download/v0.3.5/mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz &&
         tar xzf mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz
       script:
-        - ./mdbook build manual
+        - ./mdbook build manual -d target/manual/crates/serde-version
+        - echo "" > manual/target/manual/index.html
       deploy:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_PAGES_TOKEN
         repo: fredpointzero/fredpointzero.github.io
         target_branch: master
-        local_dir: manual/book
+        local_dir: manual/target/manual
         keep_history: true
         on:
           tags: true

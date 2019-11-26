@@ -5,6 +5,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+* API to aggregate version maps from multiple version uris into a single version map
+* API to easily deserialize toml with versioning support (feature gate `toml-support`)
+
+### Changed
+* The `VersionMap` is now used as a generic parameter and not as `&dyn VersionMap`.
+* `VersionMap` new requires `Clone`. Users should provide a reference instead of an owned type
+  when providing a `VersionMap` to avoid cloning during the deserialization.
 
 ## [0.4.2]
 ### Changed
