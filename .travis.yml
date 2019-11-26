@@ -28,12 +28,12 @@ jobs:
       before_script:
         - mkdir -p target/manual/crates/serde-version
       script:
-        - mdbook build manual -d target/manual/crates/serde-version
+        - mdbook build manual
       deploy:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_PAGES_TOKEN
-        local_dir: target/manual
+        local_dir: manual/book
         keep_history: true
         on:
           #tags: true
