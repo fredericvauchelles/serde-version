@@ -32,6 +32,8 @@ jobs:
         provider: pages
         skip_cleanup: true
         github_token: $GITHUB_PAGES_TOKEN
+        repo: fredpointzero/fredpointzero.github.io
+        target_branch: master
         local_dir: manual/book
         keep_history: true
         on:
