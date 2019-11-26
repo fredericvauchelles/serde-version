@@ -35,4 +35,3 @@ quickcheck_macros = "0.8"
 [features]
 default = []
 derive = ["serde_version_derive"]
-toml-support = ["toml"]

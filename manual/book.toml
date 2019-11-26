@@ -1,0 +1,6 @@
+[book]
+authors = ["Frédéric Vauchelles"]
+language = "en"
+multilingual = false
+src = "src"
+title = "Serde Version Manual"
