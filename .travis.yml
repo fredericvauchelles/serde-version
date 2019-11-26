@@ -23,10 +23,11 @@ jobs:
           all_branches: true
 
     - name: Build Manual
-      install:
-        - cargo install mdbook
+      install: |
+        wget https://github.com/rust-lang/mdBook/releases/download/v0.3.5/mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz &&
+        tar xzf mdbook-v0.3.5-x86_64-unknown-linux-gnu.tar.gz
       script:
-        - mdbook build manual
+        - ./mdbook build manual
       deploy:
         provider: pages
         skip_cleanup: true
