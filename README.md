@@ -1,7 +1,7 @@
 # Serde version &emsp; [![Build Status]][travis] [![Latest Version]][crates.io]
 
-[Build Status]: https://travis-ci.org/fredpointzero/serde-version.svg?branch=master
-[travis]: https://travis-ci.org/fredpointzero/serde-version
+[Build Status]: https://travis-ci.org/fredericvauchelles/serde-version.svg?branch=master
+[travis]: https://travis-ci.org/fredericvauchelles/serde-version
 [Latest Version]: https://img.shields.io/crates/v/serde-version.svg
 [crates.io]: https://crates.io/crates/serde-version
 # Serde version
@@ -14,7 +14,7 @@ and loaded by another version.
 
 Serde version provide a versioning feature for serde for the main use cases.
 
-See the guide [here](https://fredpointzero.github.io/crates/serde-version/).
+See the guide [here](https://fredericvauchelles.github.io/crates/serde-version/).
 
 Note 1: Requires the specialization feature.
 Note 2: Use the `derive` feature to generate the `DeserializeVersioned` implementation
