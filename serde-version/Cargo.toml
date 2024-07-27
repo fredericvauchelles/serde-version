@@ -1,19 +1,19 @@
 [package]
 name = "serde-version"
 version = "0.5.1"
-authors = ["Frédéric Vauchelles <frederic.vauchelles@gmail.com>"]
+authors = ["Frédéric Vauchelles <frederic.vauchelles@outlook.com>"]
 edition = "2018"
 license = "MIT OR Apache-2.0"
 description = "Versioning support for Serde"
-homepage = "https://github.com/fredpointzero/serde-version"
-repository = "https://github.com/fredpointzero/serde-version"
+homepage = "https://github.com/fredericvauchelles/serde-version"
+repository = "https://github.com/fredericvauchelles/serde-version"
 keywords = ["serde", "version", "serialization"]
 categories = ["encoding"]
 readme = "README.md"
 include = ["Cargo.toml", "src/**/*.rs", "README.md"]
 
 [badges]
-travis-ci = { repository = "fredpointzero/serde-version" }
+travis-ci = { repository = "fredericvauchelles/serde-version" }
 
 [dependencies]
 serde = "^1.0.0"
