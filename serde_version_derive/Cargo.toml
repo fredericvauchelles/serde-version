@@ -10,6 +10,7 @@ keywords = ["serde", "version", "serialization"]
 categories = ["encoding"]
 readme = "README.md"
 include = ["Cargo.toml", "src/**/*.rs", "README.md"]
+edition = "2021"
 
 [lib]
 name = "serde_version_derive"

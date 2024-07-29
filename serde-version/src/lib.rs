@@ -31,7 +31,7 @@
 // Some doc test needs external crates
 // In that case, we need the main function
 #![allow(clippy::needless_doctest_main)]
-#![feature(specialization)]
+#![feature(min_specialization)]
 
 // Re-export #[derive(Serialize, Deserialize)].
 //
@@ -71,7 +71,6 @@ mod visitor;
 #[macro_use]
 mod utils;
 
-pub mod exports;
 #[cfg(feature = "toml-support")]
 pub mod toml;
 

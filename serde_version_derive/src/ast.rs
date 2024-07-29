@@ -19,13 +19,12 @@ pub mod symbols {
 }
 
 pub mod attr {
-    use super::symbols::{DEFAULT, TYPE, VERSION, VERSIONS};
-    use ast::symbols::{INDEX, SELF, VERSION_SHORTHAND};
+    use super::symbols::{DEFAULT, INDEX, SELF, TYPE, VERSION, VERSION_SHORTHAND, VERSIONS};
     use proc_macro_util::prelude::{Attr, Ctxt};
     use quote::ToTokens;
     use std::collections::HashMap;
     use syn::{Meta, NestedMeta};
-    use util::get_serde_version_meta_items;
+    use super::super::util::get_serde_version_meta_items;
 
     pub struct Container {
         versions: Option<Versions>,
@@ -213,7 +212,11 @@ pub mod attr {
     }
     pub struct Version {
         pub path: PathOrSelf,
+        // Used in macro
+        #[allow(dead_code)]
         pub index: usize,
+        // Used in macro
+        #[allow(dead_code)]
         pub is_default: bool,
     }
     impl std::ops::Deref for Versions {
@@ -239,11 +242,11 @@ impl<'a> Container<'a> {
 
 #[cfg(test)]
 mod tests {
-    use ast::attr::PathOrSelf;
-    use ast::Container;
     use proc_macro_util::prelude::Ctxt;
     use quote::ToTokens;
     use std::collections::HashMap;
+    use crate::ast::attr::PathOrSelf;
+    use crate::ast::Container;
 
     #[test]
     fn parse_container() {

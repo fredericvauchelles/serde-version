@@ -132,7 +132,7 @@ macro_rules! version_map_new {
     ($($path:path => $version:expr),*,) => {
         {
             vec![
-                $(($crate::exports::get_type_name::<$path>(), $version)),*,
+                $((std::any::type_name::<$path>(), $version)),*,
             ]
             .into_iter()
             .collect::<std::collections::HashMap<_, _>>()

@@ -1,4 +1,5 @@
 [workspace]
+resolver = "2"
 members = [
     "serde-version",
     "serde_version_derive",

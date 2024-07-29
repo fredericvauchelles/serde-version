@@ -1,4 +1,4 @@
-#![feature(specialization)]
+#![feature(min_specialization)]
 
 #[macro_use]
 extern crate serde_version_derive;
@@ -57,7 +57,6 @@ impl From<Av2> for A {
 struct ContainsA {
     a: A,
 }
-
 declare_tests_versions! {
     test_version ("test_de::A" => 1) {
         A: A { c: 8 }  => &[

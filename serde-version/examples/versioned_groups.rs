@@ -1,4 +1,4 @@
-#![feature(specialization)]
+#![feature(min_specialization)]
 
 #[macro_use]
 extern crate serde_version_derive;
@@ -136,7 +136,7 @@ fn main() {
         "ContainsBoth(a: A(a: 9), b: B(a: 10))",
         ContainsBoth {
             a: A { c: 9 },
-            b: B { c: 8 },
+            b: B { c: 10 },
         },
         VERSIONS.resolve(Versions::V1.into()).unwrap(),
     );
@@ -156,7 +156,7 @@ fn main() {
         "ContainsBoth(a: A(b: 9), b: B(a: 10))",
         ContainsBoth {
             a: A { c: 9 },
-            b: B { c: 8 },
+            b: B { c: 10 },
         },
         VERSIONS.resolve(Versions::V2.into()).unwrap(),
     );

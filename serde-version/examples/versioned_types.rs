@@ -4,7 +4,7 @@
 //! This shows how to build a version map and use it during the deserialization
 //! to choose the appropriate version.
 //!
-#![feature(specialization)]
+#![feature(min_specialization)]
 
 extern crate serde;
 #[macro_use]
